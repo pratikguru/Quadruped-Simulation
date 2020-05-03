@@ -1,6 +1,6 @@
 # Quadruped-Simulation-
 
 
-**LIVE DEMO**
+**[LIVE DEMO](https://cryptic-atoll-30802.herokuapp.com)**
 
-![Shot of what this looks like?](snap_1.PNG)
+![Shot of what this looks like?](screen_1.PNG)
