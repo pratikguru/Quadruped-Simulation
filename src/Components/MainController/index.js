@@ -36,6 +36,7 @@ const AreaContainers = styled.div`
   margin: 5px;
   border-radius: 5px;
 `;
+
 const initialState = {
   theta_1_leg_1: 135,
   theta_2_leg_1: 90,
@@ -68,7 +69,7 @@ const initialState = {
   zValueLeg_3: 0,
   zValueLeg_4: 0,
 
-  FK: true,
+  FK: false,
   leg_1: true,
   leg_2: true,
   leg_3: true,
@@ -84,11 +85,21 @@ const initialState = {
   rotX: 0,
   rotY: 0,
   rotZ: 0,
+
+  transX: 0,
+  transY: 0,
+  transZ: 0,
 };
 export default class MainController extends Component {
   state = {
     ...initialState,
   };
+
+  componentDidMount() {
+    this.setState({
+      ...initialState,
+    });
+  }
 
   handleSliderChange = (e, label) => {
     this.setState({
@@ -107,16 +118,6 @@ export default class MainController extends Component {
     );
   };
 
-  handleRotations = () => {
-    let theta_1 = this.state.rotX;
-    let theta_2 = this.state.rotY;
-    let theta_3 = this.state.rotZ;
-
-    let x,
-      y,
-      z = 0;
-  };
-
   render() {
     return (
       <Container>
@@ -127,14 +128,19 @@ export default class MainController extends Component {
             showMesh={this.state.showMesh}
             frameCount={this.state.frameCount}
             lengths={{
-              coxa: this.state.coxa,
-              tibia: this.state.tibia,
-              femur: this.state.femur,
+              coxa: this.state.coxa || 60,
+              tibia: this.state.tibia || 120,
+              femur: this.state.femur || 110,
             }}
             rotations={{
               rotX: this.state.rotX,
               rotY: this.state.rotY,
               rotZ: this.state.rotZ,
+            }}
+            translations={{
+              transX: this.state.transX,
+              transY: this.state.transY,
+              transZ: this.state.transZ,
             }}
             fk={[
               [
@@ -267,6 +273,10 @@ export default class MainController extends Component {
           <Range label="rotX" min={-200} max={200} />
           <Range label="rotY" min={-200} max={200} />
           <Range label="rotZ" min={-200} max={200} />
+          <Checkbox label="seperate" />
+          <Range label="transX" min={-200} max={200} />
+          <Range label="transY" min={-200} max={200} />
+          <Range label="transZ" min={-200} max={200} />
         </ControlPanel>
       </Container>
     );

@@ -233,23 +233,23 @@ export default class PlotArea extends Component {
   }
 
   componentDidMount() {
-    if (this.props.choice === "IK") {
-      for (let i = 0; i < 100; i++) {
-        this.leg_1 = this.bot.getFK(
-          this.preapreJointIK(
-            1,
-            this.joint_1,
-            this.bot.getIK(
-              this.props.ik[0][0],
-              this.props.ik[0][1],
-              i,
-              this.joint_1
-            ),
-            this.props.lengths
-          )
-        );
-      }
-    }
+    // if (this.props.choice === "IK") {
+    //   for (let i = 0; i < 100; i++) {
+    //     this.leg_1 = this.bot.getFK(
+    //       this.preapreJointIK(
+    //         1,
+    //         this.joint_1,
+    //         this.bot.getIK(
+    //           this.props.ik[0][0],
+    //           this.props.ik[0][1],
+    //           i,
+    //           this.joint_1
+    //         ),
+    //         this.props.lengths
+    //       )
+    //     );
+    //   }
+    // }
   }
 
   preapreJointIK = (leg, joint, prop, length) => {
@@ -258,9 +258,9 @@ export default class PlotArea extends Component {
         joint.theta_1 = -joint.deg2rad(prop.theta_1);
         joint.theta_2 = -joint.deg2rad(prop.theta_2);
         joint.theta_3 = -joint.deg2rad(prop.theta_3);
-        joint.link_1 = length.coxa;
-        joint.link_2 = length.tibia;
-        joint.link_3 = length.femur;
+        joint.link_1 = length?.coxa;
+        joint.link_2 = length?.tibia;
+        joint.link_3 = length?.femur;
         break;
       }
 
@@ -268,9 +268,9 @@ export default class PlotArea extends Component {
         joint.theta_1 = -joint.deg2rad(prop.theta_1);
         joint.theta_2 = -joint.deg2rad(prop.theta_2);
         joint.theta_3 = -joint.deg2rad(prop.theta_3);
-        joint.link_1 = length.coxa;
-        joint.link_2 = length.tibia;
-        joint.link_3 = length.femur;
+        joint.link_1 = length?.coxa;
+        joint.link_2 = length?.tibia;
+        joint.link_3 = length?.femur;
         break;
       }
 
@@ -278,9 +278,9 @@ export default class PlotArea extends Component {
         joint.theta_1 = -joint.deg2rad(prop.theta_1);
         joint.theta_2 = -joint.deg2rad(prop.theta_2);
         joint.theta_3 = -joint.deg2rad(prop.theta_3);
-        joint.link_1 = length.coxa;
-        joint.link_2 = length.tibia;
-        joint.link_3 = length.femur;
+        joint.link_1 = length?.coxa;
+        joint.link_2 = length?.tibia;
+        joint.link_3 = length?.femur;
         break;
       }
 
@@ -288,9 +288,9 @@ export default class PlotArea extends Component {
         joint.theta_1 = -joint.deg2rad(prop.theta_1);
         joint.theta_2 = -joint.deg2rad(prop.theta_2);
         joint.theta_3 = -joint.deg2rad(prop.theta_3);
-        joint.link_1 = length.coxa;
-        joint.link_2 = length.tibia;
-        joint.link_3 = length.femur;
+        joint.link_1 = length?.coxa;
+        joint.link_2 = length?.tibia;
+        joint.link_3 = length?.femur;
         break;
       }
 
@@ -370,10 +370,26 @@ export default class PlotArea extends Component {
       );
 
       this.endEffectorPoints = [
-        [this.leg_1[2][0], -this.leg_1[2][1], -this.leg_1[2][2]],
-        [this.leg_2[2][0], -this.leg_2[2][1], -this.leg_2[2][2]],
-        [this.leg_3[2][0], -this.leg_3[2][1], -this.leg_3[2][2]],
-        [this.leg_4[2][0], -this.leg_4[2][1], -this.leg_4[2][2]],
+        [
+          this.leg_1[2][0] - nextProps.translations.transX,
+          -this.leg_1[2][1] - nextProps.translations.transY,
+          -this.leg_1[2][2] - nextProps.translations.transZ,
+        ],
+        [
+          this.leg_2[2][0] - nextProps.translations.transX,
+          -this.leg_2[2][1] - nextProps.translations.transY,
+          -this.leg_2[2][2] - nextProps.translations.transZ,
+        ],
+        [
+          this.leg_3[2][0] - nextProps.translations.transX,
+          -this.leg_3[2][1] - nextProps.translations.transY,
+          -this.leg_3[2][2] - nextProps.translations.transZ,
+        ],
+        [
+          this.leg_4[2][0] - nextProps.translations.transX,
+          -this.leg_4[2][1] - nextProps.translations.transY,
+          -this.leg_4[2][2] - nextProps.translations.transZ,
+        ],
       ];
     } else {
       this.endEffectorPoints = [
@@ -382,68 +398,76 @@ export default class PlotArea extends Component {
             x: nextProps.ik[0][0],
             y: nextProps.ik[0][1],
             z: nextProps.ik[0][2],
-          }).x,
+          }).x - nextProps.translations.transX,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[0][0],
             y: nextProps.ik[0][1],
             z: nextProps.ik[0][2],
-          }).y,
+          }).y - nextProps.translations.transY,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[0][0],
             y: nextProps.ik[0][1],
             z: nextProps.ik[0][2],
-          }).z,
+          }).z - nextProps.translations.transZ,
         ],
         [
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[1][0],
             y: nextProps.ik[1][1],
             z: nextProps.ik[1][2],
-          }).x,
+          }).x - nextProps.translations.transX,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[1][0],
             y: nextProps.ik[1][1],
             z: nextProps.ik[1][2],
-          }).y,
+          }).y - nextProps.translations.transY,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[1][0],
             y: nextProps.ik[1][1],
             z: nextProps.ik[1][2],
-          }).z,
+          }).z - nextProps.translations.transZ,
         ],
         [
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[2][0],
             y: nextProps.ik[2][1],
             z: nextProps.ik[2][2],
-          }).x,
+          }).x - nextProps.translations.transX,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[2][0],
             y: nextProps.ik[2][1],
             z: nextProps.ik[2][2],
-          }).y,
+          }).y - nextProps.translations.transY,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[2][0],
             y: nextProps.ik[2][1],
             z: nextProps.ik[2][2],
-          }).z,
+          }).z - nextProps.translations.transZ,
         ],
         [
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[3][0],
             y: nextProps.ik[3][1],
             z: nextProps.ik[3][2],
-          }).x,
+          }).x - nextProps.translations.transX,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[3][0],
             y: nextProps.ik[3][1],
             z: nextProps.ik[3][2],
-          }).y,
+          }).y - nextProps.translations.transY,
+
           this.handleRotation(nextProps.rotations, {
             x: nextProps.ik[3][0],
             y: nextProps.ik[3][1],
             z: nextProps.ik[3][2],
-          }).z,
+          }).z - nextProps.translations.transZ,
         ],
       ];
 
@@ -456,17 +480,19 @@ export default class PlotArea extends Component {
               x: nextProps.ik[0][0],
               y: nextProps.ik[0][1],
               z: nextProps.ik[0][2],
-            }).x,
+            }).x - nextProps.translations.transX,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[0][0],
               y: nextProps.ik[0][1],
               z: nextProps.ik[0][2],
-            }).y,
+            }).y - nextProps.translations.transY,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[0][0],
               y: nextProps.ik[0][1],
               z: nextProps.ik[0][2],
-            }).z,
+            }).z - nextProps.translations.transZ,
             this.joint_1
           ),
           nextProps.lengths
@@ -482,17 +508,19 @@ export default class PlotArea extends Component {
               x: nextProps.ik[1][0],
               y: nextProps.ik[1][1],
               z: nextProps.ik[1][2],
-            }).x,
+            }).x - nextProps.translations.transX,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[1][0],
               y: nextProps.ik[1][1],
               z: nextProps.ik[1][2],
-            }).y,
+            }).y - nextProps.translations.transY,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[1][0],
               y: nextProps.ik[1][1],
               z: nextProps.ik[1][2],
-            }).z,
+            }).z - nextProps.translations.transZ,
             this.joint_2
           ),
           nextProps.lengths
@@ -501,25 +529,27 @@ export default class PlotArea extends Component {
 
       this.leg_3 = this.bot.getFK(
         this.preapreJointIK(
-          2,
-          this.joint_2,
+          3,
+          this.joint_3,
           this.bot.getIK(
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[2][0],
               y: nextProps.ik[2][1],
               z: nextProps.ik[2][2],
-            }).x,
+            }).x - nextProps.translations.transX,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[2][0],
               y: nextProps.ik[2][1],
               z: nextProps.ik[2][2],
-            }).y,
+            }).y - nextProps.translations.transY,
+
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[2][0],
               y: nextProps.ik[2][1],
               z: nextProps.ik[2][2],
-            }).z,
-            this.joint_2
+            }).z - nextProps.translations.transZ,
+            this.joint_3
           ),
           nextProps.lengths
         )
@@ -534,17 +564,17 @@ export default class PlotArea extends Component {
               x: nextProps.ik[3][0],
               y: nextProps.ik[3][1],
               z: nextProps.ik[3][2],
-            }).x,
+            }).x - nextProps.translations.transX,
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[3][0],
               y: nextProps.ik[3][1],
               z: nextProps.ik[3][2],
-            }).y,
+            }).y - nextProps.translations.transY,
             this.handleRotation(nextProps.rotations, {
               x: nextProps.ik[3][0],
               y: nextProps.ik[3][1],
               z: nextProps.ik[3][2],
-            }).z,
+            }).z - nextProps.translations.transZ,
             this.joint_4
           ),
           nextProps.lengths
