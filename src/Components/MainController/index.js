@@ -89,6 +89,8 @@ const initialState = {
   transX: 0,
   transY: 0,
   transZ: 0,
+
+  showCogVectorTrace: false,
 };
 export default class MainController extends Component {
   state = {
@@ -127,6 +129,7 @@ export default class MainController extends Component {
             choice={this.state.FK}
             showMesh={this.state.showMesh}
             frameCount={this.state.frameCount}
+            showCogVectorTrace={this.state.showCogVectorTrace}
             lengths={{
               coxa: this.state.coxa || 60,
               tibia: this.state.tibia || 120,
@@ -277,6 +280,14 @@ export default class MainController extends Component {
           <Range label="transX" min={-200} max={200} />
           <Range label="transY" min={-200} max={200} />
           <Range label="transZ" min={-200} max={200} />
+          <Button
+            label="showCogVectorTrace"
+            action={() =>
+              this.setState({
+                showCogVectorTrace: !this.state.showCogVectorTrace,
+              })
+            }
+          />
         </ControlPanel>
       </Container>
     );

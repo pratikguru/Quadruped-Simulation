@@ -14,7 +14,18 @@ export const Container = styled.div`
 `;
 
 class Joint {
-  constructor(link_1, link_2, link_3, theta_1, theta_2, theta_3, name) {
+  constructor(
+    link_1,
+    link_2,
+    link_3,
+    theta_1,
+    theta_2,
+    theta_3,
+    link_1_mass,
+    link_2_mass,
+    link_3_mass,
+    name
+  ) {
     this.joint = {
       theta_1: theta_1,
       theta_2: theta_2,
@@ -24,6 +35,11 @@ class Joint {
       link_2: link_2,
       link_3: link_3,
       name: name,
+
+      link_1_mass: link_1_mass,
+      link_2_mass: link_2_mass,
+      link_3_mass: link_3_mass,
+      total_mass: this.link_1_mass + this.link_2_mass + this.link_3_mass,
     };
   }
 
@@ -82,6 +98,48 @@ class Robot {
       }
     }
     return resultingArray;
+  }
+
+  getPointFK(joint, point) {
+    let T0_1 = [
+      [Math.cos(joint.theta_1), -Math.sin(joint.theta_1), 0, 0],
+      [Math.sin(joint.theta_1), Math.cos(joint.theta_1), 0, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, 1],
+    ];
+
+    let T0_2 = [
+      [Math.cos(joint.theta_2), -Math.sin(joint.theta_2), 0, joint.link_1],
+      [0, 0, -1, 0],
+      [Math.sin(joint.theta_2), Math.cos(joint.theta_2), 0, 0],
+      [0, 0, 0, 1],
+    ];
+
+    let T0_3 = [
+      [Math.cos(joint.theta_3), -Math.sin(joint.theta_3), 0, joint.link_2],
+      [Math.sin(joint.theta_3), Math.cos(joint.theta_3), 0, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, 1],
+    ];
+
+    let T0_4 = [
+      [1, 0, 0, joint.link_3],
+      [0, 1, 0, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, 1],
+    ];
+
+    let point_set_1 = this._multiplyMatrices(T0_1, T0_2);
+    let point_set_2 = this._multiplyMatrices(point_set_1, T0_3);
+    let point_set_3 = this._multiplyMatrices(point_set_2, T0_4);
+
+    let coords = {
+      0: [point_set_1[0][3], point_set_1[1][3], point_set_1[2][3]],
+      1: [point_set_2[0][3], point_set_2[1][3], point_set_2[2][3]],
+      2: [point_set_3[0][3], point_set_3[1][3], point_set_3[2][3]],
+    };
+
+    return coords[point];
   }
 
   getFK(joint) {
@@ -153,12 +211,13 @@ export default class PlotArea extends Component {
   constructor(props) {
     super();
     this.bot = new Robot(props);
-    this.joint_1 = new Joint(120, 110, 120, 0, 0, 0);
-    this.joint_2 = new Joint(120, 110, 120, 0, 0, 0);
-    this.joint_3 = new Joint(120, 110, 120, 0, 0, 0);
-    this.joint_4 = new Joint(120, 110, 120, 0, 0, 0);
+    this.joint_1 = new Joint(120, 110, 120, 0, 0, 0, 250, 250, 350);
+    this.joint_2 = new Joint(120, 110, 120, 0, 0, 0, 250, 250, 350);
+    this.joint_3 = new Joint(120, 110, 120, 0, 0, 0, 250, 250, 350);
+    this.joint_4 = new Joint(120, 110, 120, 0, 0, 0, 250, 250, 350);
 
     this.endEffectorPoints = [[], [], [], []];
+
     if (props.choice) {
       this.leg_1 = this.bot.getFK(
         this.prepareJointFK(1, this.joint_1, props.fk, props.lengths)
@@ -228,6 +287,7 @@ export default class PlotArea extends Component {
 
     this.state = {
       bodyDimension: this.bot.getRobotBody(props.radius),
+      showCogVectorTrace: false,
       endEffectorPoints: [],
     };
   }
@@ -353,6 +413,7 @@ export default class PlotArea extends Component {
   componentWillReceiveProps(nextProps) {
     this.setState({
       bodyDimension: this.bot.getRobotBody(nextProps.radius),
+      showCogVectorTrace: nextProps.showCogVectorTrace,
     });
 
     if (nextProps.choice) {
@@ -639,6 +700,25 @@ export default class PlotArea extends Component {
     return mesh;
   };
 
+  getCOMVector = (leg, joint, point) => {
+    joint.link_1_mass = 250 / 1000;
+    joint.link_2_mass = 250 / 1000;
+    joint.link_3_mass = 350 / 1000;
+    joint.total_mass =
+      joint.link_1_mass + joint.link_2_mass + joint.link_3_mass;
+    let x_0 = leg[0][point];
+    let x_1 = leg[1][point];
+    let x_2 = leg[2][point];
+
+    let points =
+      (joint.link_1_mass * x_0 +
+        joint.link_2_mass * x_1 +
+        joint.link_3_mass * x_2) /
+      joint.total_mass;
+
+    return points;
+  };
+
   render() {
     return (
       <Container>
@@ -733,6 +813,132 @@ export default class PlotArea extends Component {
                 cmax: 50,
               },
             },
+            {
+              // LEG 1 CG POINTS
+              x: this.state.showCogVectorTrace
+                ? [
+                    0,
+                    this.leg_1[0][0],
+                    0,
+                    this.leg_1[1][0],
+                    0,
+                    this.leg_1[2][0],
+                    0,
+                    this.leg_2[0][0],
+                    0,
+                    this.leg_2[1][0],
+                    0,
+                    this.leg_2[2][0],
+                    0,
+                    this.leg_3[0][0],
+                    0,
+                    this.leg_3[1][0],
+                    0,
+                    this.leg_3[2][0],
+                    0,
+                    this.leg_4[0][0],
+                    0,
+                    this.leg_4[1][0],
+                    0,
+                    this.leg_4[2][0],
+                  ]
+                : [],
+              y: this.state.showCogVectorTrace
+                ? [
+                    0,
+                    this.leg_1[0][1],
+                    0,
+                    this.leg_1[1][1],
+                    0,
+                    this.leg_1[2][1],
+                    0,
+                    this.leg_2[0][1],
+                    0,
+                    this.leg_2[1][1],
+                    0,
+                    this.leg_2[2][1],
+                    0,
+                    this.leg_3[0][1],
+                    0,
+                    this.leg_3[1][1],
+                    0,
+                    this.leg_3[2][1],
+                    0,
+                    this.leg_4[0][1],
+                    0,
+                    this.leg_4[1][1],
+                    0,
+                    this.leg_4[2][1],
+                  ]
+                : [],
+              z: this.state.showCogVectorTrace
+                ? [
+                    0,
+                    this.leg_1[0][2],
+                    0,
+                    this.leg_1[1][2],
+                    0,
+                    this.leg_1[2][2],
+                    0,
+                    this.leg_2[0][2],
+                    0,
+                    this.leg_2[1][2],
+                    0,
+                    this.leg_2[2][2],
+                    0,
+                    this.leg_3[0][2],
+                    0,
+                    this.leg_3[1][2],
+                    0,
+                    this.leg_3[2][2],
+                    0,
+                    this.leg_4[0][2],
+                    0,
+                    this.leg_4[1][2],
+                    0,
+                    this.leg_4[2][2],
+                  ]
+                : [],
+              type: "scatter3d",
+              mode: "lines+markers",
+              line: {
+                width: 3,
+                colorscale: "Viridis",
+              },
+              marker: {
+                size: 3.5,
+                colorscale: "Reds",
+                cmin: -20,
+                cmax: 50,
+              },
+            },
+            {
+              x: [
+                this.getCOMVector(this.leg_1, this.joint_1, 0),
+                this.getCOMVector(this.leg_2, this.joint_2, 0),
+                this.getCOMVector(this.leg_3, this.joint_3, 0),
+                this.getCOMVector(this.leg_4, this.joint_4, 0),
+              ],
+              y: [
+                this.getCOMVector(this.leg_1, this.joint_1, 1),
+                this.getCOMVector(this.leg_2, this.joint_2, 1),
+                this.getCOMVector(this.leg_3, this.joint_3, 1),
+                this.getCOMVector(this.leg_4, this.joint_4, 1),
+              ],
+              z: [
+                this.getCOMVector(this.leg_1, this.joint_1, 2),
+                this.getCOMVector(this.leg_2, this.joint_2, 2),
+                this.getCOMVector(this.leg_3, this.joint_3, 2),
+                this.getCOMVector(this.leg_4, this.joint_4, 2),
+              ],
+              mode: "markers",
+              type: "scatter3d",
+              marker: {
+                color: "rgba(255, 0, 0, 0.8)",
+                size: 4,
+              },
+            },
+
             {
               x: this.props.showMesh ? this.getGeneratedMesh().x : [0],
               y: this.props.showMesh ? this.getGeneratedMesh().y : [0],
