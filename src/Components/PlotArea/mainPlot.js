@@ -289,6 +289,8 @@ export default class PlotArea extends Component {
       bodyDimension: this.bot.getRobotBody(props.radius),
       showCogVectorTrace: false,
       endEffectorPoints: [],
+      showCogPoints: false,
+      showBodyCogVectorTrace: false,
     };
   }
 
@@ -414,6 +416,8 @@ export default class PlotArea extends Component {
     this.setState({
       bodyDimension: this.bot.getRobotBody(nextProps.radius),
       showCogVectorTrace: nextProps.showCogVectorTrace,
+      showBodyCogVectorTrace: nextProps.showBodyCogVectorTrace,
+      showCogPoints: nextProps.showCogPoints,
     });
 
     if (nextProps.choice) {
@@ -719,6 +723,25 @@ export default class PlotArea extends Component {
     return points;
   };
 
+  getCOMPoint = (points, joint) => {
+    joint[0].total_mass = 0.25 + 0.25 + 0.35;
+    joint[1].total_mass = 0.25 + 0.25 + 0.35;
+    joint[2].total_mass = 0.25 + 0.25 + 0.35;
+    joint[3].total_mass = 0.25 + 0.25 + 0.35;
+
+    let total_centre_of_mass =
+      (points[0] * joint[0].total_mass +
+        points[1] * joint[1].total_mass +
+        points[2] * joint[2].total_mass +
+        points[3] * joint[3].total_mass) /
+        joint[0].total_mass +
+      joint[1].total_mass +
+      joint[2].total_mass +
+      joint[3].total_mass;
+
+    return total_centre_of_mass;
+  };
+
   render() {
     return (
       <Container>
@@ -913,24 +936,30 @@ export default class PlotArea extends Component {
               },
             },
             {
-              x: [
-                this.getCOMVector(this.leg_1, this.joint_1, 0),
-                this.getCOMVector(this.leg_2, this.joint_2, 0),
-                this.getCOMVector(this.leg_3, this.joint_3, 0),
-                this.getCOMVector(this.leg_4, this.joint_4, 0),
-              ],
-              y: [
-                this.getCOMVector(this.leg_1, this.joint_1, 1),
-                this.getCOMVector(this.leg_2, this.joint_2, 1),
-                this.getCOMVector(this.leg_3, this.joint_3, 1),
-                this.getCOMVector(this.leg_4, this.joint_4, 1),
-              ],
-              z: [
-                this.getCOMVector(this.leg_1, this.joint_1, 2),
-                this.getCOMVector(this.leg_2, this.joint_2, 2),
-                this.getCOMVector(this.leg_3, this.joint_3, 2),
-                this.getCOMVector(this.leg_4, this.joint_4, 2),
-              ],
+              x: this.state.showCogPoints
+                ? [
+                    this.getCOMVector(this.leg_1, this.joint_1, 0),
+                    this.getCOMVector(this.leg_2, this.joint_2, 0),
+                    this.getCOMVector(this.leg_3, this.joint_3, 0),
+                    this.getCOMVector(this.leg_4, this.joint_4, 0),
+                  ]
+                : [],
+              y: this.state.showCogPoints
+                ? [
+                    this.getCOMVector(this.leg_1, this.joint_1, 1),
+                    this.getCOMVector(this.leg_2, this.joint_2, 1),
+                    this.getCOMVector(this.leg_3, this.joint_3, 1),
+                    this.getCOMVector(this.leg_4, this.joint_4, 1),
+                  ]
+                : [],
+              z: this.state.showCogPoints
+                ? [
+                    this.getCOMVector(this.leg_1, this.joint_1, 2),
+                    this.getCOMVector(this.leg_2, this.joint_2, 2),
+                    this.getCOMVector(this.leg_3, this.joint_3, 2),
+                    this.getCOMVector(this.leg_4, this.joint_4, 2),
+                  ]
+                : [],
               mode: "markers",
               type: "scatter3d",
               marker: {
@@ -939,6 +968,57 @@ export default class PlotArea extends Component {
               },
             },
 
+            {
+              x: this.state.showCogPoints
+                ? [
+                    0,
+                    this.getCOMPoint(
+                      [
+                        this.getCOMVector(this.leg_1, this.joint_1, 0),
+                        this.getCOMVector(this.leg_2, this.joint_2, 0),
+                        this.getCOMVector(this.leg_3, this.joint_3, 0),
+                        this.getCOMVector(this.leg_4, this.joint_4, 0),
+                      ],
+                      [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
+                    ),
+                  ]
+                : [],
+              y: this.state.showCogPoints
+                ? [
+                    0,
+                    this.getCOMPoint(
+                      [
+                        this.getCOMVector(this.leg_1, this.joint_1, 1),
+                        this.getCOMVector(this.leg_2, this.joint_2, 1),
+                        this.getCOMVector(this.leg_3, this.joint_3, 1),
+                        this.getCOMVector(this.leg_4, this.joint_4, 1),
+                      ],
+                      [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
+                    ),
+                  ]
+                : [],
+
+              z: this.state.showCogPoints
+                ? [
+                    0,
+                    this.getCOMPoint(
+                      [
+                        this.getCOMVector(this.leg_1, this.joint_1, 2),
+                        this.getCOMVector(this.leg_2, this.joint_2, 2),
+                        this.getCOMVector(this.leg_3, this.joint_3, 2),
+                        this.getCOMVector(this.leg_4, this.joint_4, 2),
+                      ],
+                      [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
+                    ),
+                  ]
+                : [],
+              mode: "lines+markers",
+              type: "scatter3d",
+              marker: {
+                color: "rgba(0, 0, 255, 0.8)",
+                size: 4,
+              },
+            },
             {
               x: this.props.showMesh ? this.getGeneratedMesh().x : [0],
               y: this.props.showMesh ? this.getGeneratedMesh().y : [0],

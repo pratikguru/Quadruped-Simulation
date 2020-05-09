@@ -90,7 +90,9 @@ const initialState = {
   transY: 0,
   transZ: 0,
 
+  showCogPoints: false,
   showCogVectorTrace: false,
+  showBodyCogVectorTrace: false,
 };
 export default class MainController extends Component {
   state = {
@@ -129,7 +131,9 @@ export default class MainController extends Component {
             choice={this.state.FK}
             showMesh={this.state.showMesh}
             frameCount={this.state.frameCount}
+            showCogPoints={this.state.showCogPoints}
             showCogVectorTrace={this.state.showCogVectorTrace}
+            showBodyCogVectorTrace={this.state.showBodyCogVectorTrace}
             lengths={{
               coxa: this.state.coxa || 60,
               tibia: this.state.tibia || 120,
@@ -281,10 +285,26 @@ export default class MainController extends Component {
           <Range label="transY" min={-200} max={200} />
           <Range label="transZ" min={-200} max={200} />
           <Button
+            label="showCogPoints"
+            action={() =>
+              this.setState({
+                showCogPoints: !this.state.showCogPoints,
+              })
+            }
+          />
+          <Button
             label="showCogVectorTrace"
             action={() =>
               this.setState({
                 showCogVectorTrace: !this.state.showCogVectorTrace,
+              })
+            }
+          />
+          <Button
+            label="showBodyCogVectorTrace"
+            action={() =>
+              this.setState({
+                showBodyCogVectorTrace: !this.state.showBodyCogVectorTrace,
               })
             }
           />
