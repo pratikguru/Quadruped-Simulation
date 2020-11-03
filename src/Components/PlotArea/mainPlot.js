@@ -739,7 +739,7 @@ export default class PlotArea extends Component {
       joint[2].total_mass +
       joint[3].total_mass;
 
-    return total_centre_of_mass;
+    return total_centre_of_mass / 4;
   };
 
   render() {
