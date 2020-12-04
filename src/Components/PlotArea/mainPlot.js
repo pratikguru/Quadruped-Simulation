@@ -413,12 +413,17 @@ export default class PlotArea extends Component {
   };
 
   componentWillReceiveProps(nextProps) {
-    this.setState({
-      bodyDimension: this.bot.getRobotBody(nextProps.radius),
-      showCogVectorTrace: nextProps.showCogVectorTrace,
-      showBodyCogVectorTrace: nextProps.showBodyCogVectorTrace,
-      showCogPoints: nextProps.showCogPoints,
-    });
+    this.setState(
+      {
+        bodyDimension: this.bot.getRobotBody(nextProps.radius),
+        showCogVectorTrace: nextProps.showCogVectorTrace,
+        showBodyCogVectorTrace: nextProps.showBodyCogVectorTrace,
+        showCogPoints: nextProps.showCogPoints,
+      },
+      () => {
+        console.log(this.state.bodyDimension);
+      }
+    );
 
     if (nextProps.choice) {
       this.leg_1 = this.bot.getFK(
@@ -683,16 +688,16 @@ export default class PlotArea extends Component {
   getGeneratedMesh = () => {
     let mesh = {
       x: [
-        this.endEffectorPoints[0][0],
-        this.endEffectorPoints[1][0],
-        this.endEffectorPoints[2][0],
-        this.endEffectorPoints[3][0],
+        this.endEffectorPoints[0][0] - this.props.radius,
+        this.endEffectorPoints[1][0] - this.props.radius,
+        this.endEffectorPoints[2][0] + this.props.radius,
+        this.endEffectorPoints[3][0] + this.props.radius,
       ],
       y: [
-        -this.endEffectorPoints[0][1],
-        -this.endEffectorPoints[1][1],
-        -this.endEffectorPoints[2][1],
-        -this.endEffectorPoints[3][1],
+        -this.endEffectorPoints[0][1] + this.props.radius,
+        -this.endEffectorPoints[1][1] - this.props.radius,
+        -this.endEffectorPoints[2][1] + this.props.radius,
+        -this.endEffectorPoints[3][1] - this.props.radius,
       ],
       z: [
         -this.endEffectorPoints[0][2],
@@ -766,8 +771,18 @@ export default class PlotArea extends Component {
             },
             {
               // LEG 1
-              x: [0, this.leg_1[0][0], this.leg_1[1][0], this.leg_1[2][0]],
-              y: [0, this.leg_1[0][1], this.leg_1[1][1], this.leg_1[2][1]],
+              x: [
+                -this.props.radius,
+                this.leg_1[0][0] - this.props.radius,
+                this.leg_1[1][0] - this.props.radius,
+                this.leg_1[2][0] - this.props.radius,
+              ],
+              y: [
+                this.props.radius,
+                this.leg_1[0][1] + this.props.radius,
+                this.leg_1[1][1] + this.props.radius,
+                this.leg_1[2][1] + this.props.radius,
+              ],
               z: [0, this.leg_1[0][2], this.leg_1[1][2], this.leg_1[2][2]],
               type: "scatter3d",
               mode: "lines+markers",
@@ -784,8 +799,18 @@ export default class PlotArea extends Component {
             },
             {
               // LEG 2
-              x: [0, this.leg_2[0][0], this.leg_2[1][0], this.leg_2[2][0]],
-              y: [0, this.leg_2[0][1], this.leg_2[1][1], this.leg_2[2][1]],
+              x: [
+                -this.props.radius,
+                this.leg_2[0][0] - this.props.radius,
+                this.leg_2[1][0] - this.props.radius,
+                this.leg_2[2][0] - this.props.radius,
+              ],
+              y: [
+                -this.props.radius,
+                this.leg_2[0][1] - this.props.radius,
+                this.leg_2[1][1] - this.props.radius,
+                this.leg_2[2][1] - this.props.radius,
+              ],
               z: [0, this.leg_2[0][2], this.leg_2[1][2], this.leg_2[2][2]],
               type: "scatter3d",
               mode: "lines+markers",
@@ -802,8 +827,18 @@ export default class PlotArea extends Component {
             },
             {
               // LEG 3
-              x: [0, this.leg_3[0][0], this.leg_3[1][0], this.leg_3[2][0]],
-              y: [0, this.leg_3[0][1], this.leg_3[1][1], this.leg_3[2][1]],
+              x: [
+                this.props.radius,
+                this.props.radius + this.leg_3[0][0],
+                this.props.radius + this.leg_3[1][0],
+                this.props.radius + this.leg_3[2][0],
+              ],
+              y: [
+                this.props.radius,
+                this.props.radius + this.leg_3[0][1],
+                this.props.radius + this.leg_3[1][1],
+                this.props.radius + this.leg_3[2][1],
+              ],
               z: [0, this.leg_3[0][2], this.leg_3[1][2], this.leg_3[2][2]],
               type: "scatter3d",
               mode: "lines+markers",
@@ -820,8 +855,18 @@ export default class PlotArea extends Component {
             },
             {
               // LEG 4
-              x: [0, this.leg_4[0][0], this.leg_4[1][0], this.leg_4[2][0]],
-              y: [0, this.leg_4[0][1], this.leg_4[1][1], this.leg_4[2][1]],
+              x: [
+                this.props.radius,
+                this.leg_4[0][0] + this.props.radius,
+                this.leg_4[1][0] + this.props.radius,
+                this.leg_4[2][0] + this.props.radius,
+              ],
+              y: [
+                -this.props.radius,
+                this.leg_4[0][1] - this.props.radius,
+                this.leg_4[1][1] - this.props.radius,
+                this.leg_4[2][1] - this.props.radius,
+              ],
               z: [0, this.leg_4[0][2], this.leg_4[1][2], this.leg_4[2][2]],
               type: "scatter3d",
               mode: "lines+markers",
@@ -841,57 +886,57 @@ export default class PlotArea extends Component {
               x: this.state.showCogVectorTrace
                 ? [
                     0,
-                    this.leg_1[0][0],
+                    this.leg_1[0][0] - this.props.radius,
                     0,
-                    this.leg_1[1][0],
+                    this.leg_1[1][0] - this.props.radius,
                     0,
-                    this.leg_1[2][0],
+                    this.leg_1[2][0] - this.props.radius,
                     0,
-                    this.leg_2[0][0],
+                    this.leg_2[0][0] - this.props.radius,
                     0,
-                    this.leg_2[1][0],
+                    this.leg_2[1][0] - this.props.radius,
                     0,
-                    this.leg_2[2][0],
+                    this.leg_2[2][0] - this.props.radius,
                     0,
-                    this.leg_3[0][0],
+                    this.leg_3[0][0] - this.props.radius,
                     0,
-                    this.leg_3[1][0],
+                    this.leg_3[1][0] + this.props.radius,
                     0,
-                    this.leg_3[2][0],
+                    this.leg_3[2][0] + this.props.radius,
                     0,
-                    this.leg_4[0][0],
+                    this.leg_4[0][0] + this.props.radius,
                     0,
-                    this.leg_4[1][0],
+                    this.leg_4[1][0] + this.props.radius,
                     0,
-                    this.leg_4[2][0],
+                    this.leg_4[2][0] + this.props.radius,
                   ]
                 : [],
               y: this.state.showCogVectorTrace
                 ? [
                     0,
-                    this.leg_1[0][1],
+                    this.leg_1[0][1] + this.props.radius,
                     0,
-                    this.leg_1[1][1],
+                    this.leg_1[1][1] + this.props.radius,
                     0,
-                    this.leg_1[2][1],
+                    this.leg_1[2][1] + this.props.radius,
                     0,
-                    this.leg_2[0][1],
+                    this.leg_2[0][1] - this.props.radius,
                     0,
-                    this.leg_2[1][1],
+                    this.leg_2[1][1] - this.props.radius,
                     0,
-                    this.leg_2[2][1],
+                    this.leg_2[2][1] - this.props.radius,
                     0,
-                    this.leg_3[0][1],
+                    this.leg_3[0][1] - this.props.radius,
                     0,
-                    this.leg_3[1][1],
+                    this.leg_3[1][1] + this.props.radius,
                     0,
-                    this.leg_3[2][1],
+                    this.leg_3[2][1] + this.props.radius,
                     0,
-                    this.leg_4[0][1],
+                    this.leg_4[0][1] - this.props.radius,
                     0,
-                    this.leg_4[1][1],
+                    this.leg_4[1][1] - this.props.radius,
                     0,
-                    this.leg_4[2][1],
+                    this.leg_4[2][1] - this.props.radius,
                   ]
                 : [],
               z: this.state.showCogVectorTrace
@@ -938,18 +983,26 @@ export default class PlotArea extends Component {
             {
               x: this.state.showCogPoints
                 ? [
-                    this.getCOMVector(this.leg_1, this.joint_1, 0),
-                    this.getCOMVector(this.leg_2, this.joint_2, 0),
-                    this.getCOMVector(this.leg_3, this.joint_3, 0),
-                    this.getCOMVector(this.leg_4, this.joint_4, 0),
+                    this.getCOMVector(this.leg_1, this.joint_1, 0) -
+                      this.props.radius,
+                    this.getCOMVector(this.leg_2, this.joint_2, 0) -
+                      this.props.radius,
+                    this.getCOMVector(this.leg_3, this.joint_3, 0) +
+                      this.props.radius,
+                    this.getCOMVector(this.leg_4, this.joint_4, 0) +
+                      this.props.radius,
                   ]
                 : [],
               y: this.state.showCogPoints
                 ? [
-                    this.getCOMVector(this.leg_1, this.joint_1, 1),
-                    this.getCOMVector(this.leg_2, this.joint_2, 1),
-                    this.getCOMVector(this.leg_3, this.joint_3, 1),
-                    this.getCOMVector(this.leg_4, this.joint_4, 1),
+                    this.getCOMVector(this.leg_1, this.joint_1, 1) +
+                      this.props.radius,
+                    this.getCOMVector(this.leg_2, this.joint_2, 1) -
+                      this.props.radius,
+                    this.getCOMVector(this.leg_3, this.joint_3, 1) +
+                      this.props.radius,
+                    this.getCOMVector(this.leg_4, this.joint_4, 1) -
+                      this.props.radius,
                   ]
                 : [],
               z: this.state.showCogPoints
@@ -974,10 +1027,14 @@ export default class PlotArea extends Component {
                     0,
                     this.getCOMPoint(
                       [
-                        this.getCOMVector(this.leg_1, this.joint_1, 0),
-                        this.getCOMVector(this.leg_2, this.joint_2, 0),
-                        this.getCOMVector(this.leg_3, this.joint_3, 0),
-                        this.getCOMVector(this.leg_4, this.joint_4, 0),
+                        this.getCOMVector(this.leg_1, this.joint_1, 0) -
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_2, this.joint_2, 0) -
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_3, this.joint_3, 0) +
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_4, this.joint_4, 0) +
+                          this.props.bodyRadius,
                       ],
                       [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
                     ),
@@ -988,10 +1045,14 @@ export default class PlotArea extends Component {
                     0,
                     this.getCOMPoint(
                       [
-                        this.getCOMVector(this.leg_1, this.joint_1, 1),
-                        this.getCOMVector(this.leg_2, this.joint_2, 1),
-                        this.getCOMVector(this.leg_3, this.joint_3, 1),
-                        this.getCOMVector(this.leg_4, this.joint_4, 1),
+                        this.getCOMVector(this.leg_1, this.joint_1, 1) +
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_2, this.joint_2, 1) -
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_3, this.joint_3, 1) +
+                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_4, this.joint_4, 1) -
+                          this.props.bodyRadius,
                       ],
                       [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
                     ),
@@ -1020,6 +1081,7 @@ export default class PlotArea extends Component {
               },
             },
             {
+              //MESH.
               x: this.props.showMesh ? this.getGeneratedMesh().x : [0],
               y: this.props.showMesh ? this.getGeneratedMesh().y : [0],
               z: this.props.showMesh ? this.getGeneratedMesh().z : [0],
