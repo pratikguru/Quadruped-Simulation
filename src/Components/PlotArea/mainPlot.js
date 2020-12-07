@@ -744,7 +744,7 @@ export default class PlotArea extends Component {
       joint[2].total_mass +
       joint[3].total_mass;
 
-    return total_centre_of_mass / 4;
+    return total_centre_of_mass;
   };
 
   render() {
@@ -1027,13 +1027,13 @@ export default class PlotArea extends Component {
                     0,
                     this.getCOMPoint(
                       [
-                        this.getCOMVector(this.leg_1, this.joint_1, 0) -
+                        this.getCOMVector(this.leg_1, this.joint_1, 0) +
                           this.props.bodyRadius,
-                        this.getCOMVector(this.leg_2, this.joint_2, 0) -
+                        this.getCOMVector(this.leg_2, this.joint_2, 0) +
                           this.props.bodyRadius,
-                        this.getCOMVector(this.leg_3, this.joint_3, 0) +
+                        this.getCOMVector(this.leg_3, this.joint_3, 0) -
                           this.props.bodyRadius,
-                        this.getCOMVector(this.leg_4, this.joint_4, 0) +
+                        this.getCOMVector(this.leg_4, this.joint_4, 0) -
                           this.props.bodyRadius,
                       ],
                       [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
@@ -1077,7 +1077,7 @@ export default class PlotArea extends Component {
               type: "scatter3d",
               marker: {
                 color: "rgba(0, 0, 255, 0.8)",
-                size: 4,
+                size: 10,
               },
             },
             {
