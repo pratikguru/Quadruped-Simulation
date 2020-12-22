@@ -734,6 +734,7 @@ export default class PlotArea extends Component {
     joint[2].total_mass = 0.25 + 0.25 + 0.35;
     joint[3].total_mass = 0.25 + 0.25 + 0.35;
 
+    console.log(points);
     let total_centre_of_mass =
       (points[0] * joint[0].total_mass +
         points[1] * joint[1].total_mass +
@@ -744,7 +745,8 @@ export default class PlotArea extends Component {
       joint[2].total_mass +
       joint[3].total_mass;
 
-    return total_centre_of_mass;
+    console.log(total_centre_of_mass);
+    return total_centre_of_mass / 4;
   };
 
   render() {
@@ -1027,14 +1029,10 @@ export default class PlotArea extends Component {
                     0,
                     this.getCOMPoint(
                       [
-                        this.getCOMVector(this.leg_1, this.joint_1, 0) +
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_2, this.joint_2, 0) +
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_3, this.joint_3, 0) -
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_4, this.joint_4, 0) -
-                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_1, this.joint_1, 0),
+                        this.getCOMVector(this.leg_2, this.joint_2, 0),
+                        this.getCOMVector(this.leg_3, this.joint_3, 0),
+                        this.getCOMVector(this.leg_4, this.joint_4, 0),
                       ],
                       [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
                     ),
@@ -1045,14 +1043,10 @@ export default class PlotArea extends Component {
                     0,
                     this.getCOMPoint(
                       [
-                        this.getCOMVector(this.leg_1, this.joint_1, 1) +
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_2, this.joint_2, 1) -
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_3, this.joint_3, 1) +
-                          this.props.bodyRadius,
-                        this.getCOMVector(this.leg_4, this.joint_4, 1) -
-                          this.props.bodyRadius,
+                        this.getCOMVector(this.leg_1, this.joint_1, 1),
+                        this.getCOMVector(this.leg_2, this.joint_2, 1),
+                        this.getCOMVector(this.leg_3, this.joint_3, 1),
+                        this.getCOMVector(this.leg_4, this.joint_4, 1),
                       ],
                       [this.joint_1, this.joint_2, this.joint_3, this.joint_4]
                     ),
