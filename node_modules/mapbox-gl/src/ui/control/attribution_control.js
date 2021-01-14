@@ -1,7 +1,7 @@
 // @flow
 
 import DOM from '../../util/dom';
-import { bindAll } from '../../util/util';
+import {bindAll} from '../../util/util';
 import config from '../../util/config';
 
 import type Map from '../map';
@@ -83,6 +83,7 @@ class AttributionControl {
         this._map.off('resize', this._updateCompact);
 
         this._map = (undefined: any);
+        this._attribHTML = (undefined: any);
     }
 
     _updateEditLink() {

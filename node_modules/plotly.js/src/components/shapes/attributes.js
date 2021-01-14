@@ -13,6 +13,7 @@ var scatterLineAttrs = require('../../traces/scatter/attributes').line;
 var dash = require('../drawing/attributes').dash;
 var extendFlat = require('../../lib/extend').extendFlat;
 var templatedArray = require('../../plot_api/plot_template').templatedArray;
+var axisPlaceableObjs = require('../../constants/axis_placeable_objects');
 
 module.exports = templatedArray('shape', {
     visible: {
@@ -63,11 +64,7 @@ module.exports = templatedArray('shape', {
     xref: extendFlat({}, annAttrs.xref, {
         description: [
             'Sets the shape\'s x coordinate axis.',
-            'If set to an x axis id (e.g. *x* or *x2*), the `x` position',
-            'refers to an x coordinate.',
-            'If set to *paper*, the `x` position refers to the distance from',
-            'the left side of the plotting area in normalized coordinates',
-            'where *0* (*1*) corresponds to the left (right) side.',
+            axisPlaceableObjs.axisRefDescription('x', 'left', 'right'),
             'If the axis `type` is *log*, then you must take the',
             'log of your desired range.',
             'If the axis `type` is *date*, then you must convert',
@@ -126,11 +123,7 @@ module.exports = templatedArray('shape', {
     yref: extendFlat({}, annAttrs.yref, {
         description: [
             'Sets the annotation\'s y coordinate axis.',
-            'If set to an y axis id (e.g. *y* or *y2*), the `y` position',
-            'refers to an y coordinate',
-            'If set to *paper*, the `y` position refers to the distance from',
-            'the bottom of the plotting area in normalized coordinates',
-            'where *0* (*1*) corresponds to the bottom (top).'
+            axisPlaceableObjs.axisRefDescription('y', 'bottom', 'top'),
         ].join(' ')
     }),
     ysizemode: {
@@ -235,8 +228,31 @@ module.exports = templatedArray('shape', {
         role: 'info',
         editType: 'arraydraw',
         description: [
-            'Sets the color filling the shape\'s interior.'
+            'Sets the color filling the shape\'s interior. Only applies to closed shapes.'
         ].join(' ')
     },
+    fillrule: {
+        valType: 'enumerated',
+        values: ['evenodd', 'nonzero'],
+        dflt: 'evenodd',
+        role: 'info',
+        editType: 'arraydraw',
+        description: [
+            'Determines which regions of complex paths constitute the interior.',
+            'For more info please visit https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-rule'
+        ].join(' ')
+    },
+    editable: {
+        valType: 'boolean',
+        role: 'info',
+        dflt: false,
+        editType: 'calc+arraydraw',
+        description: [
+            'Determines whether the shape could be activated for edit or not.',
+            'Has no effect when the older editable shapes mode is enabled via',
+            '`config.editable` or `config.edits.shapePosition`.'
+        ].join(' ')
+    },
+
     editType: 'arraydraw'
 });

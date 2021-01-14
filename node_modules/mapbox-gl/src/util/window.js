@@ -13,7 +13,7 @@ import sinon from 'sinon';
 
 import type {Window} from '../types/window';
 
-const { window: _window } = new jsdom.JSDOM('', {
+const {window: _window} = new jsdom.JSDOM('', {
     virtualConsole: new jsdom.VirtualConsole().sendTo(console)
 });
 
@@ -32,7 +32,7 @@ function restore(): Window {
     }
 
     // Create new window and inject into exported object
-    const { window } = new jsdom.JSDOM('', {
+    const {window} = new jsdom.JSDOM('', {
         // Send jsdom console output to the node console object.
         virtualConsole: new jsdom.VirtualConsole().sendTo(console)
     });
@@ -76,7 +76,22 @@ function restore(): Window {
 
     window.URL.revokeObjectURL = function () {};
 
+    window.fakeWorkerPresence = function() {
+        global.WorkerGlobalScope = function() {};
+        global.self = new global.WorkerGlobalScope();
+    };
+    window.clearFakeWorkerPresence = function() {
+        global.WorkerGlobalScope = undefined;
+        global.self = undefined;
+    };
+
     window.restore = restore;
+
+    window.performance.getEntriesByName = function() {};
+    window.performance.mark = function() {};
+    window.performance.measure = function() {};
+    window.performance.clearMarks = function() {};
+    window.performance.clearMeasures = function() {};
 
     window.ImageData = window.ImageData || function() { return false; };
     window.ImageBitmap = window.ImageBitmap || function() { return false; };

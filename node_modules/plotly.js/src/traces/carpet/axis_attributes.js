@@ -88,6 +88,7 @@ module.exports = {
             'the axis in question.'
         ].join(' ')
     },
+    autotypenumbers: axesAttrs.autotypenumbers,
     autorange: {
         valType: 'enumerated',
         values: [true, false, 'reversed'],
@@ -282,6 +283,16 @@ module.exports = {
             'If *power*, 1x10^9 (with 9 in a super script).',
             'If *SI*, 1G.',
             'If *B*, 1B.'
+        ].join(' ')
+    },
+    minexponent: {
+        valType: 'number',
+        dflt: 3,
+        min: 0,
+        role: 'style',
+        editType: 'calc',
+        description: [
+            'Hide SI prefix for 10^n if |n| is below this number'
         ].join(' ')
     },
     separatethousands: {

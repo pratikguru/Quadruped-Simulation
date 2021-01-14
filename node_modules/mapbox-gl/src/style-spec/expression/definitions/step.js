@@ -1,15 +1,14 @@
 // @flow
 
-import { NumberType } from '../types';
+import {NumberType} from '../types';
 
-import { findStopLessThanOrEqualTo } from '../stops';
+import {findStopLessThanOrEqualTo} from '../stops';
 
-import type { Stops } from '../stops';
-import type { Expression } from '../expression';
+import type {Stops} from '../stops';
+import type {Expression} from '../expression';
 import type ParsingContext from '../parsing_context';
 import type EvaluationContext from '../evaluation_context';
-import type { Value } from '../values';
-import type { Type } from '../types';
+import type {Type} from '../types';
 
 class Step implements Expression {
     type: Type;
@@ -95,15 +94,15 @@ class Step implements Expression {
         return outputs[index].evaluate(ctx);
     }
 
-    eachChild(fn: (Expression) => void) {
+    eachChild(fn: (_: Expression) => void) {
         fn(this.input);
         for (const expression of this.outputs) {
             fn(expression);
         }
     }
 
-    possibleOutputs(): Array<Value | void> {
-        return [].concat(...this.outputs.map((output) => output.possibleOutputs()));
+    outputDefined(): boolean {
+        return this.outputs.every(out => out.outputDefined());
     }
 
     serialize() {

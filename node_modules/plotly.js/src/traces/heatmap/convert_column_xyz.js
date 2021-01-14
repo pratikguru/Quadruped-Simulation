@@ -11,11 +11,15 @@
 
 var Lib = require('../../lib');
 var BADNUM = require('../../constants/numerical').BADNUM;
+var alignPeriod = require('../../plots/cartesian/align_period');
 
 module.exports = function convertColumnData(trace, ax1, ax2, var1Name, var2Name, arrayVarNames) {
     var colLen = trace._length;
     var col1 = ax1.makeCalcdata(trace, var1Name);
     var col2 = ax2.makeCalcdata(trace, var2Name);
+    col1 = alignPeriod(trace, ax1, var1Name, col1);
+    col2 = alignPeriod(trace, ax2, var2Name, col2);
+
     var textCol = trace.text;
     var hasColumnText = (textCol !== undefined && Lib.isArray1D(textCol));
     var hoverTextCol = trace.hovertext;
@@ -30,18 +34,21 @@ module.exports = function convertColumnData(trace, ax1, ax2, var1Name, var2Name,
     var text;
     var hovertext;
 
+    var nI = col2vals.length;
+    var nJ = col1vals.length;
+
     for(i = 0; i < arrayVarNames.length; i++) {
-        newArrays[i] = Lib.init2dArray(col2vals.length, col1vals.length);
+        newArrays[i] = Lib.init2dArray(nI, nJ);
     }
 
     if(hasColumnText) {
-        text = Lib.init2dArray(col2vals.length, col1vals.length);
+        text = Lib.init2dArray(nI, nJ);
     }
     if(hasColumnHoverText) {
-        hovertext = Lib.init2dArray(col2vals.length, col1vals.length);
+        hovertext = Lib.init2dArray(nI, nJ);
     }
 
-    var after2before = Lib.init2dArray(col2vals.length, col1vals.length);
+    var after2before = Lib.init2dArray(nI, nJ);
 
     for(i = 0; i < colLen; i++) {
         if(col1[i] !== BADNUM && col2[i] !== BADNUM) {

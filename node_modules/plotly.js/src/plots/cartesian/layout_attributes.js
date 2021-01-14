@@ -16,8 +16,10 @@ var templatedArray = require('../../plot_api/plot_template').templatedArray;
 
 var FORMAT_LINK = require('../../constants/docs').FORMAT_LINK;
 var DATE_FORMAT_LINK = require('../../constants/docs').DATE_FORMAT_LINK;
-
+var ONEDAY = require('../../constants/numerical').ONEDAY;
 var constants = require('./constants');
+var HOUR = constants.HOUR_PATTERN;
+var DAY_OF_WEEK = constants.WEEKDAY_PATTERN;
 
 module.exports = {
     visible: {
@@ -98,6 +100,19 @@ module.exports = {
             'By default, plotly attempts to determined the axis type',
             'by looking into the data of the traces that referenced',
             'the axis in question.'
+        ].join(' ')
+    },
+    autotypenumbers: {
+        valType: 'enumerated',
+        values: ['convert types', 'strict'],
+        dflt: 'convert types',
+        role: 'info',
+        editType: 'calc',
+        description: [
+            'Using *strict* a numeric string in trace data is not converted to a number.',
+            'Using *convert types* a numeric string in trace data may be',
+            'treated as a number during automatic axis `type` detection.',
+            'Defaults to layout.autotypenumbers.'
         ].join(' ')
     },
     autorange: {
@@ -208,13 +223,13 @@ module.exports = {
     constrain: {
         valType: 'enumerated',
         values: ['range', 'domain'],
-        dflt: 'range',
         role: 'info',
         editType: 'plot',
         description: [
             'If this axis needs to be compressed (either due to its own `scaleanchor` and',
             '`scaleratio` or those of the other axis), determines how that happens:',
-            'by increasing the *range* (default), or by decreasing the *domain*.'
+            'by increasing the *range*, or by decreasing the *domain*.',
+            'Default is *domain* for axes containing image traces, *range* otherwise.'
         ].join(' ')
     },
     // constraintoward: not used directly, just put here for reference
@@ -248,6 +263,116 @@ module.exports = {
             'Moreover, note that matching axes must have the same `type`.'
         ].join(' ')
     },
+
+    rangebreaks: templatedArray('rangebreak', {
+        enabled: {
+            valType: 'boolean',
+            role: 'info',
+            dflt: true,
+            editType: 'calc',
+            description: [
+                'Determines whether this axis rangebreak is enabled or disabled.',
+                'Please note that `rangebreaks` only work for *date* axis type.'
+            ].join(' ')
+        },
+
+        bounds: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'any', editType: 'calc'},
+                {valType: 'any', editType: 'calc'}
+            ],
+            editType: 'calc',
+            description: [
+                'Sets the lower and upper bounds of this axis rangebreak.',
+                'Can be used with `pattern`.'
+            ].join(' ')
+        },
+
+        pattern: {
+            valType: 'enumerated',
+            values: [DAY_OF_WEEK, HOUR, ''],
+            role: 'info',
+            editType: 'calc',
+            description: [
+                'Determines a pattern on the time line that generates breaks.',
+                'If *' + DAY_OF_WEEK + '* - days of the week in English e.g. \'Sunday\' or `\sun\`',
+                '(matching is case-insensitive and considers only the first three characters),',
+                'as well as Sunday-based integers between 0 and 6.',
+                'If *' + HOUR + '* - hour (24-hour clock) as decimal numbers between 0 and 24.',
+                'for more info.',
+                'Examples:',
+                '- { pattern: \'' + DAY_OF_WEEK + '\', bounds: [6, 1] }',
+                ' or simply { bounds: [\'sat\', \'mon\'] }',
+                '  breaks from Saturday to Monday (i.e. skips the weekends).',
+                '- { pattern: \'' + HOUR + '\', bounds: [17, 8] }',
+                '  breaks from 5pm to 8am (i.e. skips non-work hours).'
+            ].join(' ')
+        },
+
+        values: {
+            valType: 'info_array',
+            freeLength: true,
+            role: 'info',
+            editType: 'calc',
+            items: {
+                valType: 'any',
+                editType: 'calc'
+            },
+            description: [
+                'Sets the coordinate values corresponding to the rangebreaks.',
+                'An alternative to `bounds`.',
+                'Use `dvalue` to set the size of the values along the axis.'
+            ].join(' ')
+        },
+        dvalue: {
+            // TODO could become 'any' to add support for 'months', 'years'
+            valType: 'number',
+            role: 'info',
+            editType: 'calc',
+            min: 0,
+            dflt: ONEDAY,
+            description: [
+                'Sets the size of each `values` item.',
+                'The default is one day in milliseconds.'
+            ].join(' ')
+        },
+
+        /*
+        gap: {
+            valType: 'number',
+            min: 0,
+            dflt: 0, // for *date* axes, maybe something else for *linear*
+            editType: 'calc',
+            role: 'info',
+            description: [
+                'Sets the gap distance between the start and the end of this rangebreak.',
+                'Use with `gapmode` to set the unit of measurement.'
+            ].join(' ')
+        },
+        gapmode: {
+            valType: 'enumerated',
+            values: ['pixels', 'fraction'],
+            dflt: 'pixels',
+            editType: 'calc',
+            role: 'info',
+            description: [
+                'Determines if the `gap` value corresponds to a pixel length',
+                'or a fraction of the plot area.'
+            ].join(' ')
+        },
+        */
+
+        // To complete https://github.com/plotly/plotly.js/issues/4210
+        // we additionally need `gap` and make this work on *linear*, and
+        // possibly all other cartesian axis types. We possibly would also need
+        // some style attributes controlling the zig-zag on the corresponding
+        // axis.
+
+        editType: 'calc'
+    }),
+
     // ticks
     tickmode: {
         valType: 'enumerated',
@@ -366,6 +491,46 @@ module.exports = {
             'to the left/bottom of labels.'
         ].join(' ')
     },
+    ticklabelmode: {
+        valType: 'enumerated',
+        values: ['instant', 'period'],
+        dflt: 'instant',
+        role: 'info',
+        editType: 'ticks',
+        description: [
+            'Determines where tick labels are drawn with respect to their',
+            'corresponding ticks and grid lines.',
+            'Only has an effect for axes of `type` *date*',
+            'When set to *period*, tick labels are drawn in the middle of the period',
+            'between ticks.'
+        ].join(' ')
+    },
+    // ticklabelposition: not used directly, as values depend on direction (similar to side)
+    // left/right options are for x axes, and top/bottom options are for y axes
+    ticklabelposition: {
+        valType: 'enumerated',
+        values: [
+            'outside', 'inside',
+            'outside top', 'inside top',
+            'outside left', 'inside left',
+            'outside right', 'inside right',
+            'outside bottom', 'inside bottom'
+        ],
+        dflt: 'outside',
+        role: 'info',
+        editType: 'calc',
+        description: [
+            'Determines where tick labels are drawn with respect to the axis',
+            'Please note that',
+            'top or bottom has no effect on x axes or when `ticklabelmode` is set to *period*.',
+            'Similarly',
+            'left or right has no effect on y axes or when `ticklabelmode` is set to *period*.',
+            'Has no effect on *multicategory* axes or when `tickson` is set to *boundaries*.',
+            'When used on axes linked by `matches` or `scaleanchor`,',
+            'no extra padding for inside labels would be added by autorange,',
+            'so that the scales could match.'
+        ].join(' ')
+    },
     mirror: {
         valType: 'enumerated',
         values: [true, 'ticks', false, 'all', 'allticks'],
@@ -468,7 +633,7 @@ module.exports = {
     },
     spikesnap: {
         valType: 'enumerated',
-        values: ['data', 'cursor'],
+        values: ['data', 'cursor', 'hovered data'],
         dflt: 'data',
         role: 'style',
         editType: 'none',
@@ -552,6 +717,17 @@ module.exports = {
             'If *power*, 1x10^9 (with 9 in a super script).',
             'If *SI*, 1G.',
             'If *B*, 1B.'
+        ].join(' ')
+    },
+    minexponent: {
+        valType: 'number',
+        dflt: 3,
+        min: 0,
+        role: 'style',
+        editType: 'ticks',
+        description: [
+            'Hide SI prefix for 10^n if |n| is below this number.',
+            'This only has an effect when `tickformat` is *SI* or *B*.'
         ].join(' ')
     },
     separatethousands: {

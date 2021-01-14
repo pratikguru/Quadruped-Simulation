@@ -7,8 +7,8 @@ import DepthMode from './depth_mode';
 import StencilMode from './stencil_mode';
 import ColorMode from './color_mode';
 import CullFaceMode from './cull_face_mode';
-import { deepEqual } from '../util/util';
-import { ClearColor, ClearDepth, ClearStencil, ColorMask, DepthMask, StencilMask, StencilFunc, StencilOp, StencilTest, DepthRange, DepthTest, DepthFunc, Blend, BlendFunc, BlendColor, BlendEquation, CullFace, CullFaceSide, FrontFace, Program, ActiveTextureUnit, Viewport, BindFramebuffer, BindRenderbuffer, BindTexture, BindVertexBuffer, BindElementBuffer, BindVertexArrayOES, PixelStoreUnpack, PixelStoreUnpackPremultiplyAlpha, PixelStoreUnpackFlipY } from './value';
+import {deepEqual} from '../util/util';
+import {ClearColor, ClearDepth, ClearStencil, ColorMask, DepthMask, StencilMask, StencilFunc, StencilOp, StencilTest, DepthRange, DepthTest, DepthFunc, Blend, BlendFunc, BlendColor, BlendEquation, CullFace, CullFaceSide, FrontFace, Program, ActiveTextureUnit, Viewport, BindFramebuffer, BindRenderbuffer, BindTexture, BindVertexBuffer, BindElementBuffer, BindVertexArrayOES, PixelStoreUnpack, PixelStoreUnpackPremultiplyAlpha, PixelStoreUnpackFlipY} from './value';
 
 import type {TriangleIndexArray, LineIndexArray, LineStripIndexArray} from '../data/index_array_type';
 import type {
@@ -63,6 +63,8 @@ class Context {
     extTextureFilterAnisotropic: any;
     extTextureFilterAnisotropicMax: any;
     extTextureHalfFloat: any;
+    extRenderToTextureHalfFloat: any;
+    extTimerQuery: any;
 
     constructor(gl: WebGLRenderingContext) {
         this.gl = gl;
@@ -112,7 +114,10 @@ class Context {
         this.extTextureHalfFloat = gl.getExtension('OES_texture_half_float');
         if (this.extTextureHalfFloat) {
             gl.getExtension('OES_texture_half_float_linear');
+            this.extRenderToTextureHalfFloat = gl.getExtension('EXT_color_buffer_half_float');
         }
+
+        this.extTimerQuery = gl.getExtension('EXT_disjoint_timer_query');
     }
 
     setDefault() {
@@ -200,8 +205,8 @@ class Context {
         return rbo;
     }
 
-    createFramebuffer(width: number, height: number) {
-        return new Framebuffer(this, width, height);
+    createFramebuffer(width: number, height: number, hasDepth: boolean) {
+        return new Framebuffer(this, width, height, hasDepth);
     }
 
     clear({color, depth}: ClearArgs) {

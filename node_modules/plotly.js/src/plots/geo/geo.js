@@ -14,6 +14,7 @@ var d3 = require('d3');
 
 var Registry = require('../../registry');
 var Lib = require('../../lib');
+var strTranslate = Lib.strTranslate;
 var Color = require('../../components/color');
 var Drawing = require('../../components/drawing');
 var Fx = require('../../components/fx');
@@ -22,6 +23,7 @@ var Axes = require('../cartesian/axes');
 var getAutoRange = require('../cartesian/autorange').getAutoRange;
 var dragElement = require('../../components/dragelement');
 var prepSelect = require('../cartesian/select').prepSelect;
+var clearSelect = require('../cartesian/select').clearSelect;
 var selectOnClick = require('../cartesian/select').selectOnClick;
 
 var createGeoZoom = require('./zoom');
@@ -229,7 +231,7 @@ proto.updateProjection = function(geoCalcData, fullLayout) {
 
             var projType = projLayout.type;
             var lonHalfSpan = (constants.lonaxisSpan[projType] / 2) || 180;
-            var latHalfSpan = (constants.lataxisSpan[projType] / 2) || 180;
+            var latHalfSpan = (constants.lataxisSpan[projType] / 2) || 90;
 
             lonaxisRange = [midLon - lonHalfSpan, midLon + lonHalfSpan];
             lataxisRange = [midLat - latHalfSpan, midLat + latHalfSpan];
@@ -489,7 +491,7 @@ proto.updateFx = function(fullLayout, geoLayout) {
         subplot: _this.id,
         clickFn: function(numClicks) {
             if(numClicks === 2) {
-                fullLayout._zoomlayer.selectAll('.select-outline').remove();
+                clearSelect(gd);
             }
         }
     };
@@ -631,7 +633,7 @@ proto.render = function() {
     function translatePoints(d) {
         var lonlatPx = projection(d.lonlat);
         return lonlatPx ?
-            'translate(' + lonlatPx[0] + ',' + lonlatPx[1] + ')' :
+            strTranslate(lonlatPx[0], lonlatPx[1]) :
              null;
     }
 

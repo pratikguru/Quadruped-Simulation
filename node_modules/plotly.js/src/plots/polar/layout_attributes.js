@@ -47,6 +47,7 @@ var axisTickAttrs = overrideAll({
     ticksuffix: axesAttrs.ticksuffix,
     showexponent: axesAttrs.showexponent,
     exponentformat: axesAttrs.exponentformat,
+    minexponent: axesAttrs.minexponent,
     separatethousands: axesAttrs.separatethousands,
     tickfont: axesAttrs.tickfont,
     tickangle: axesAttrs.tickangle,
@@ -60,6 +61,7 @@ var radialAxisAttrs = {
     type: extendFlat({}, axesAttrs.type, {
         values: ['-', 'linear', 'log', 'date', 'category']
     }),
+    autotypenumbers: axesAttrs.autotypenumbers,
 
     autorange: extendFlat({}, axesAttrs.autorange, {editType: 'plot'}),
     rangemode: {
@@ -178,6 +180,7 @@ var angularAxisAttrs = {
             'If *category, use `period` to set the number of integer coordinates around polar axis.'
         ].join(' ')
     },
+    autotypenumbers: axesAttrs.autotypenumbers,
 
     categoryorder: axesAttrs.categoryorder,
     categoryarray: axesAttrs.categoryarray,

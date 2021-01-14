@@ -1,8 +1,8 @@
 // @flow
 
-import { pick, extend } from '../util/util';
+import {pick, extend} from '../util/util';
 
-import { getJSON, ResourceType } from '../util/ajax';
+import {getJSON, ResourceType} from '../util/ajax';
 import browser from '../util/browser';
 
 import type {RequestManager} from '../util/mapbox';
@@ -26,10 +26,7 @@ export default function(options: any, requestManager: RequestManager, callback: 
                 result.vectorLayerIds = result.vectorLayers.map((layer) => { return layer.id; });
             }
 
-            // only canonicalize tile tileset if source is declared using a tilejson url
-            if (options.url) {
-                result.tiles = requestManager.canonicalizeTileset(result, options.url);
-            }
+            result.tiles = requestManager.canonicalizeTileset(result, options.url);
             callback(null, result);
         }
     };

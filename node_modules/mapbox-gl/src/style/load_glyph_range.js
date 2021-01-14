@@ -1,6 +1,6 @@
 // @flow
 
-import { getArrayBuffer, ResourceType } from '../util/ajax';
+import {getArrayBuffer, ResourceType} from '../util/ajax';
 
 import parseGlyphPBF from './parse_glyph_pbf';
 
@@ -12,7 +12,7 @@ export default function (fontstack: string,
                            range: number,
                            urlTemplate: string,
                            requestManager: RequestManager,
-                           callback: Callback<{[number]: StyleGlyph | null}>) {
+                           callback: Callback<{[_: number]: StyleGlyph | null}>) {
     const begin = range * 256;
     const end = begin + 255;
 

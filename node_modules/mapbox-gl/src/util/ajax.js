@@ -1,14 +1,16 @@
 // @flow
 
 import window from './window';
-import { extend, warnOnce } from './util';
-import { isMapboxHTTPURL, hasCacheDefeatingSku } from './mapbox';
+import {extend, warnOnce, isWorker} from './util';
+import {isMapboxHTTPURL, hasCacheDefeatingSku} from './mapbox';
 import config from './config';
 import assert from 'assert';
-import { cacheGet, cachePut } from './tile_request_cache';
+import {cacheGet, cachePut} from './tile_request_cache';
+import webpSupported from './webp_supported';
+import offscreenCanvasSupported from './offscreen_canvas_supported';
 
-import type { Callback } from '../types/callback';
-import type { Cancelable } from '../types/cancelable';
+import type {Callback} from '../types/callback';
+import type {Cancelable} from '../types/cancelable';
 
 /**
  * The type of a resource.
@@ -26,7 +28,7 @@ const ResourceType = {
     SpriteJSON: 'SpriteJSON',
     Image: 'Image'
 };
-export { ResourceType };
+export {ResourceType};
 
 if (typeof Object.freeze == 'function') {
     Object.freeze(ResourceType);
@@ -37,7 +39,23 @@ if (typeof Object.freeze == 'function') {
  * @typedef {Object} RequestParameters
  * @property {string} url The URL to be requested.
  * @property {Object} headers The headers to be sent with the request.
+ * @property {string} method Request method `'GET' | 'POST' | 'PUT'`.
+ * @property {string} body Request body.
+ * @property {string} type Response body type to be returned `'string' | 'json' | 'arrayBuffer'`.
  * @property {string} credentials `'same-origin'|'include'` Use 'include' to send cookies with cross-origin requests.
+ * @property {boolean} collectResourceTiming If true, Resource Timing API information will be collected for these transformed requests and returned in a resourceTiming property of relevant data events.
+ * @example
+ * // use transformRequest to modify requests that begin with `http://myHost`
+ * transformRequest: function(url, resourceType) {
+ *  if (resourceType === 'Source' && url.indexOf('http://myHost') > -1) {
+ *    return {
+ *      url: url.replace('http', 'https'),
+ *      headers: { 'my-custom-header': true },
+ *      credentials: 'include'  // Include cookies for cross-origin requests
+ *    }
+ *   }
+ *  }
+ *
  */
 export type RequestParameters = {
     url: string,
@@ -72,16 +90,11 @@ class AJAXError extends Error {
     }
 }
 
-function isWorker() {
-    return typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined' &&
-           self instanceof WorkerGlobalScope;
-}
-
 // Ensure that we're sending the correct referrer from blob URL worker bundles.
 // For files loaded from the local file system, `location.origin` will be set
 // to the string(!) "null" (Firefox), or "file://" (Chrome, Safari, Edge, IE),
 // and we will set an empty referrer. Otherwise, we're using the document's URL.
-/* global self, WorkerGlobalScope */
+/* global self */
 export const getReferrer = isWorker() ?
     () => self.worker && self.worker.referrer :
     () => (window.location.protocol === 'blob:' ? window.parent : window).location.href;
@@ -166,7 +179,9 @@ function makeFetchRequest(requestParameters: RequestParameters, callback: Respon
             }
             complete = true;
             callback(null, result, response.headers.get('Cache-Control'), response.headers.get('Expires'));
-        }).catch(err => callback(new Error(err.message)));
+        }).catch(err => {
+            if (!aborted) callback(new Error(err.message));
+        });
     };
 
     if (cacheIgnoringSearch) {
@@ -175,7 +190,7 @@ function makeFetchRequest(requestParameters: RequestParameters, callback: Respon
         validateOrFetch(null, null);
     }
 
-    return { cancel: () => {
+    return {cancel: () => {
         aborted = true;
         if (!complete) controller.abort();
     }};
@@ -216,7 +231,7 @@ function makeXMLHttpRequest(requestParameters: RequestParameters, callback: Resp
         }
     };
     xhr.send(requestParameters.body);
-    return { cancel: () => xhr.abort() };
+    return {cancel: () => xhr.abort()};
 }
 
 export const makeRequest = function(requestParameters: RequestParameters, callback: ResponseCallback<any>): Cancelable {
@@ -232,22 +247,23 @@ export const makeRequest = function(requestParameters: RequestParameters, callba
             return makeFetchRequest(requestParameters, callback);
         }
         if (isWorker() && self.worker && self.worker.actor) {
-            return self.worker.actor.send('getResource', requestParameters, callback);
+            const queueOnMainThread = true;
+            return self.worker.actor.send('getResource', requestParameters, callback, undefined, queueOnMainThread);
         }
     }
     return makeXMLHttpRequest(requestParameters, callback);
 };
 
 export const getJSON = function(requestParameters: RequestParameters, callback: ResponseCallback<Object>): Cancelable {
-    return makeRequest(extend(requestParameters, { type: 'json' }), callback);
+    return makeRequest(extend(requestParameters, {type: 'json'}), callback);
 };
 
 export const getArrayBuffer = function(requestParameters: RequestParameters, callback: ResponseCallback<ArrayBuffer>): Cancelable {
-    return makeRequest(extend(requestParameters, { type: 'arrayBuffer' }), callback);
+    return makeRequest(extend(requestParameters, {type: 'arrayBuffer'}), callback);
 };
 
 export const postData = function(requestParameters: RequestParameters, callback: ResponseCallback<string>): Cancelable {
-    return makeRequest(extend(requestParameters, { method: 'POST' }), callback);
+    return makeRequest(extend(requestParameters, {method: 'POST'}), callback);
 };
 
 function sameOrigin(url) {
@@ -258,6 +274,29 @@ function sameOrigin(url) {
 
 const transparentPngUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQYV2NgAAIAAAUAAarVyFEAAAAASUVORK5CYII=';
 
+function arrayBufferToImage(data: ArrayBuffer, callback: (err: ?Error, image: ?HTMLImageElement) => void, cacheControl: ?string, expires: ?string) {
+    const img: HTMLImageElement = new window.Image();
+    const URL = window.URL;
+    img.onload = () => {
+        callback(null, img);
+        URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => callback(new Error('Could not load image. Please make sure to use a supported image type such as PNG or JPEG. Note that SVGs are not supported.'));
+    const blob: Blob = new window.Blob([new Uint8Array(data)], {type: 'image/png'});
+    (img: any).cacheControl = cacheControl;
+    (img: any).expires = expires;
+    img.src = data.byteLength ? URL.createObjectURL(blob) : transparentPngUrl;
+}
+
+function arrayBufferToImageBitmap(data: ArrayBuffer, callback: (err: ?Error, image: ?ImageBitmap) => void) {
+    const blob: Blob = new window.Blob([new Uint8Array(data)], {type: 'image/png'});
+    window.createImageBitmap(blob).then((imgBitmap) => {
+        callback(null, imgBitmap);
+    }).catch((e) => {
+        callback(new Error(`Could not load image because of ${e.message}. Please make sure to use a supported image type such as PNG or JPEG. Note that SVGs are not supported.`));
+    });
+}
+
 let imageQueue, numImageRequests;
 export const resetImageRequestQueue = () => {
     imageQueue = [];
@@ -265,7 +304,14 @@ export const resetImageRequestQueue = () => {
 };
 resetImageRequestQueue();
 
-export const getImage = function(requestParameters: RequestParameters, callback: Callback<HTMLImageElement>): Cancelable {
+export const getImage = function(requestParameters: RequestParameters, callback: Callback<HTMLImageElement | ImageBitmap>): Cancelable {
+    if (webpSupported.supported) {
+        if (!requestParameters.headers) {
+            requestParameters.headers = {};
+        }
+        requestParameters.headers.accept = 'image/webp,*/*';
+    }
+
     // limit concurrent image loads to help with raster sources performance on big screens
     if (numImageRequests >= config.MAX_PARALLEL_IMAGE_REQUESTS) {
         const queued = {
@@ -303,17 +349,11 @@ export const getImage = function(requestParameters: RequestParameters, callback:
         if (err) {
             callback(err);
         } else if (data) {
-            const img: HTMLImageElement = new window.Image();
-            const URL = window.URL || window.webkitURL;
-            img.onload = () => {
-                callback(null, img);
-                URL.revokeObjectURL(img.src);
-            };
-            img.onerror = () => callback(new Error('Could not load image. Please make sure to use a supported image type such as PNG or JPEG. Note that SVGs are not supported.'));
-            const blob: Blob = new window.Blob([new Uint8Array(data)], { type: 'image/png' });
-            (img: any).cacheControl = cacheControl;
-            (img: any).expires = expires;
-            img.src = data.byteLength ? URL.createObjectURL(blob) : transparentPngUrl;
+            if (offscreenCanvasSupported()) {
+                arrayBufferToImageBitmap(data, callback);
+            } else {
+                arrayBufferToImage(data, callback, cacheControl, expires);
+            }
         }
     });
 
@@ -339,5 +379,5 @@ export const getVideo = function(urls: Array<string>, callback: Callback<HTMLVid
         s.src = urls[i];
         video.appendChild(s);
     }
-    return { cancel: () => {} };
+    return {cancel: () => {}};
 };

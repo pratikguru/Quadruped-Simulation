@@ -1,13 +1,14 @@
 // @flow
 
-import { extend, bindAll } from '../util/util';
-import { Event, Evented } from '../util/evented';
+import {extend, bindAll} from '../util/util';
+import {Event, Evented} from '../util/evented';
+import {MapMouseEvent} from '../ui/events';
 import DOM from '../util/dom';
 import LngLat from '../geo/lng_lat';
 import Point from '@mapbox/point-geometry';
 import window from '../util/window';
 import smartWrap from '../util/smart_wrap';
-import { type Anchor, anchorTranslate, applyAnchorClass } from './anchor';
+import {type Anchor, anchorTranslate, applyAnchorClass} from './anchor';
 
 import type Map from './map';
 import type {LngLatLike} from '../geo/lng_lat';
@@ -20,11 +21,12 @@ const defaultOptions = {
     maxWidth: "240px"
 };
 
-export type Offset = number | PointLike | {[Anchor]: PointLike};
+export type Offset = number | PointLike | {[_: Anchor]: PointLike};
 
 export type PopupOptions = {
     closeButton?: boolean,
     closeOnClick?: boolean,
+    closeOnMove?: boolean,
     anchor?: Anchor,
     offset?: Offset,
     className?: string,
@@ -39,6 +41,8 @@ export type PopupOptions = {
  *   top right corner of the popup.
  * @param {boolean} [options.closeOnClick=true] If `true`, the popup will closed when the
  *   map is clicked.
+ * @param {boolean} [options.closeOnMove=false] If `true`, the popup will closed when the
+ *   map moves.
  * @param {string} [options.anchor] - A string indicating the part of the Popup that should
  *   be positioned closest to the coordinate set via {@link Popup#setLngLat}.
  *   Options are `'center'`, `'top'`, `'bottom'`, `'left'`, `'right'`, `'top-left'`,
@@ -92,7 +96,7 @@ export default class Popup extends Evented {
     constructor(options: PopupOptions) {
         super();
         this.options = extend(Object.create(defaultOptions), options);
-        bindAll(['_update', '_onClickClose', 'remove'], this);
+        bindAll(['_update', '_onClose', 'remove', '_onMouseMove', '_onMouseUp', '_onDrag'], this);
     }
 
     /**
@@ -100,20 +104,37 @@ export default class Popup extends Evented {
      *
      * @param {Map} map The Mapbox GL JS map to add the popup to.
      * @returns {Popup} `this`
+     * @example
+     * new mapboxgl.Popup()
+     *   .setLngLat([0, 0])
+     *   .setHTML("<h1>Null Island</h1>")
+     *   .addTo(map);
+     * @see [Display a popup](https://docs.mapbox.com/mapbox-gl-js/example/popup/)
+     * @see [Display a popup on hover](https://docs.mapbox.com/mapbox-gl-js/example/popup-on-hover/)
+     * @see [Display a popup on click](https://docs.mapbox.com/mapbox-gl-js/example/popup-on-click/)
+     * @see [Show polygon information on click](https://docs.mapbox.com/mapbox-gl-js/example/polygon-popup-on-click/)
      */
     addTo(map: Map) {
+        if (this._map) this.remove();
+
         this._map = map;
         if (this.options.closeOnClick) {
-            this._map.on('click', this._onClickClose);
+            this._map.on('click', this._onClose);
+        }
+
+        if (this.options.closeOnMove) {
+            this._map.on('move', this._onClose);
         }
 
         this._map.on('remove', this.remove);
         this._update();
 
         if (this._trackPointer) {
-            this._map.on('mousemove', (e) => { this._update(e.point); });
-            this._map.on('mouseup', (e) => { this._update(e.point); });
-            this._container.classList.add('mapboxgl-popup-track-pointer');
+            this._map.on('mousemove', this._onMouseMove);
+            this._map.on('mouseup', this._onMouseUp);
+            if (this._container) {
+                this._container.classList.add('mapboxgl-popup-track-pointer');
+            }
             this._map._canvasContainer.classList.add('mapboxgl-track-pointer');
         } else {
             this._map.on('move', this._update);
@@ -127,6 +148,16 @@ export default class Popup extends Evented {
          * @instance
          * @type {Object}
          * @property {Popup} popup object that was opened
+         *
+         * @example
+         * // Create a popup
+         * var popup = new mapboxgl.Popup();
+         * // Set an event listener that will fire
+         * // any time the popup is opened
+         * popup.on('open', function(){
+         *   console.log('popup was opened');
+         * });
+         *
          */
         this.fire(new Event('open'));
 
@@ -160,9 +191,12 @@ export default class Popup extends Evented {
 
         if (this._map) {
             this._map.off('move', this._update);
-            this._map.off('click', this._onClickClose);
+            this._map.off('move', this._onClose);
+            this._map.off('click', this._onClose);
             this._map.off('remove', this.remove);
-            this._map.off('mousemove');
+            this._map.off('mousemove', this._onMouseMove);
+            this._map.off('mouseup', this._onMouseUp);
+            this._map.off('drag', this._onDrag);
             delete this._map;
         }
 
@@ -174,6 +208,16 @@ export default class Popup extends Evented {
          * @instance
          * @type {Object}
          * @property {Popup} popup object that was closed
+         *
+         * @example
+         * // Create a popup
+         * var popup = new mapboxgl.Popup();
+         * // Set an event listener that will fire
+         * // any time the popup is closed
+         * popup.on('close', function(){
+         *   console.log('popup was closed');
+         * });
+         *
          */
         this.fire(new Event('close'));
 
@@ -209,8 +253,10 @@ export default class Popup extends Evented {
 
         if (this._map) {
             this._map.on('move', this._update);
-            this._map.off('mousemove');
-            this._container.classList.remove('mapboxgl-popup-track-pointer');
+            this._map.off('mousemove', this._onMouseMove);
+            if (this._container) {
+                this._container.classList.remove('mapboxgl-popup-track-pointer');
+            }
             this._map._canvasContainer.classList.remove('mapboxgl-track-pointer');
         }
 
@@ -218,19 +264,26 @@ export default class Popup extends Evented {
     }
 
     /**
-     * Tracks the popup anchor to the cursor position, on screens with a pointer device (will be hidden on touchscreens). Replaces the setLngLat behavior.
-     * For most use cases, `closeOnClick` and `closeButton` should also be set to `false` here.
+     * Tracks the popup anchor to the cursor position on screens with a pointer device (it will be hidden on touchscreens). Replaces the `setLngLat` behavior.
+     * For most use cases, set `closeOnClick` and `closeButton` to `false`.
+     * @example
+     * var popup = new mapboxgl.Popup({ closeOnClick: false, closeButton: false })
+     *   .setHTML("<h1>Hello World!</h1>")
+     *   .trackPointer()
+     *   .addTo(map);
      * @returns {Popup} `this`
      */
     trackPointer() {
         this._trackPointer = true;
         this._pos = null;
-
+        this._update();
         if (this._map) {
             this._map.off('move', this._update);
-            this._map.on('mousemove', (e) => { this._update(e.point); });
-            this._map.on('drag', (e) => { this._update(e.point); });
-            this._container.classList.add('mapboxgl-popup-track-pointer');
+            this._map.on('mousemove', this._onMouseMove);
+            this._map.on('drag', this._onDrag);
+            if (this._container) {
+                this._container.classList.add('mapboxgl-popup-track-pointer');
+            }
             this._map._canvasContainer.classList.add('mapboxgl-track-pointer');
         }
 
@@ -240,6 +293,14 @@ export default class Popup extends Evented {
 
     /**
      * Returns the `Popup`'s HTML element.
+     * @example
+     * // Change the `Popup` element's font size
+     * var popup = new mapboxgl.Popup()
+     *   .setLngLat([-96, 37.8])
+     *   .setHTML("<p>Hello World!</p>")
+     *   .addTo(map);
+     * var popupElem = popup.getElement();
+     * popupElem.style.fontSize = "25px";
      * @returns {HTMLElement} element
      */
     getElement() {
@@ -274,6 +335,15 @@ export default class Popup extends Evented {
      *
      * @param html A string representing HTML content for the popup.
      * @returns {Popup} `this`
+     * @example
+     * var popup = new mapboxgl.Popup()
+     *   .setLngLat(e.lngLat)
+     *   .setHTML("<h1>Hello World!</h1>")
+     *   .addTo(map);
+     * @see [Display a popup](https://docs.mapbox.com/mapbox-gl-js/example/popup/)
+     * @see [Display a popup on hover](https://docs.mapbox.com/mapbox-gl-js/example/popup-on-hover/)
+     * @see [Display a popup on click](https://docs.mapbox.com/mapbox-gl-js/example/popup-on-click/)
+     * @see [Attach a popup to a marker instance](https://docs.mapbox.com/mapbox-gl-js/example/set-popup/)
      */
     setHTML(html: string) {
         const frag = window.document.createDocumentFragment();
@@ -295,7 +365,7 @@ export default class Popup extends Evented {
      * @returns {string} The maximum width of the popup.
      */
     getMaxWidth() {
-        return this._container.style.maxWidth;
+        return this._container && this._container.style.maxWidth;
     }
 
     /**
@@ -332,6 +402,53 @@ export default class Popup extends Evented {
         return this;
     }
 
+    /**
+     * Adds a CSS class to the popup container element.
+     *
+     * @param {string} className Non-empty string with CSS class name to add to popup container
+     *
+     * @example
+     * let popup = new mapboxgl.Popup()
+     * popup.addClassName('some-class')
+     */
+    addClassName(className: string) {
+        if (this._container) {
+            this._container.classList.add(className);
+        }
+    }
+
+    /**
+     * Removes a CSS class from the popup container element.
+     *
+     * @param {string} className Non-empty string with CSS class name to remove from popup container
+     *
+     * @example
+     * let popup = new mapboxgl.Popup()
+     * popup.removeClassName('some-class')
+     */
+    removeClassName(className: string) {
+        if (this._container) {
+            this._container.classList.remove(className);
+        }
+    }
+
+    /**
+     * Add or remove the given CSS class on the popup container, depending on whether the container currently has that class.
+     *
+     * @param {string} className Non-empty string with CSS class name to add/remove
+     *
+     * @returns {boolean} if the class was removed return false, if class was added, then return true
+     *
+     * @example
+     * let popup = new mapboxgl.Popup()
+     * popup.toggleClassName('toggleClass')
+     */
+    toggleClassName(className: string) {
+        if (this._container) {
+            return this._container.classList.toggle(className);
+        }
+    }
+
     _createContent() {
         if (this._content) {
             DOM.remove(this._content);
@@ -343,13 +460,24 @@ export default class Popup extends Evented {
             this._closeButton.type = 'button';
             this._closeButton.setAttribute('aria-label', 'Close popup');
             this._closeButton.innerHTML = '&#215;';
-            this._closeButton.addEventListener('click', this._onClickClose);
+            this._closeButton.addEventListener('click', this._onClose);
         }
 
     }
 
-    _update(cursor: PointLike) {
+    _onMouseUp(event: MapMouseEvent) {
+        this._update(event.point);
+    }
 
+    _onMouseMove(event: MapMouseEvent) {
+        this._update(event.point);
+    }
+
+    _onDrag(event: MapMouseEvent) {
+        this._update(event.point);
+    }
+
+    _update(cursor: PointLike) {
         const hasPosition = this._lngLat || this._trackPointer;
 
         if (!this._map || !hasPosition || !this._content) { return; }
@@ -363,6 +491,9 @@ export default class Popup extends Evented {
                     this._container.classList.add(name));
             }
 
+            if (this._trackPointer) {
+                this._container.classList.add('mapboxgl-popup-track-pointer');
+            }
         }
 
         if (this.options.maxWidth && this._container.style.maxWidth !== this.options.maxWidth) {
@@ -411,7 +542,7 @@ export default class Popup extends Evented {
         applyAnchorClass(this._container, anchor, 'popup');
     }
 
-    _onClickClose() {
+    _onClose() {
         this.remove();
     }
 }

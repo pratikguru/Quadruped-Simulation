@@ -14,6 +14,7 @@ var tinycolor = require('tinycolor2');
 
 var Registry = require('../../registry');
 var Lib = require('../../lib');
+var strTranslate = Lib.strTranslate;
 var _ = Lib._;
 var Color = require('../../components/color');
 var Drawing = require('../../components/drawing');
@@ -23,10 +24,14 @@ var Plots = require('../plots');
 var Axes = require('../cartesian/axes');
 var dragElement = require('../../components/dragelement');
 var Fx = require('../../components/fx');
+var dragHelpers = require('../../components/dragelement/helpers');
+var freeMode = dragHelpers.freeMode;
+var rectMode = dragHelpers.rectMode;
 var Titles = require('../../components/titles');
 var prepSelect = require('../cartesian/select').prepSelect;
 var selectOnClick = require('../cartesian/select').selectOnClick;
 var clearSelect = require('../cartesian/select').clearSelect;
+var clearSelectionsCache = require('../cartesian/select').clearSelectionsCache;
 var constants = require('../cartesian/constants');
 
 function Ternary(options, fullLayout) {
@@ -297,7 +302,7 @@ proto.adjustLayout = function(ternaryLayout, graphSize) {
     var triangleClipRelative = 'M0,' + h + 'h' + w + 'l-' + (w / 2) + ',-' + h + 'Z';
     _this.clipDefRelative.select('path').attr('d', triangleClipRelative);
 
-    var plotTransform = 'translate(' + x0 + ',' + y0 + ')';
+    var plotTransform = strTranslate(x0, y0);
     _this.plotContainer.selectAll('.scatterlayer,.maplayer')
         .attr('transform', plotTransform);
 
@@ -306,18 +311,18 @@ proto.adjustLayout = function(ternaryLayout, graphSize) {
     // TODO: shift axes to accommodate linewidth*sin(30) tick mark angle
 
     // TODO: there's probably an easier way to handle these translations/offsets now...
-    var bTransform = 'translate(' + (x0 - baxis._offset) + ',' + (y0 + h) + ')';
+    var bTransform = strTranslate(x0 - baxis._offset, y0 + h);
 
     _this.layers.baxis.attr('transform', bTransform);
     _this.layers.bgrid.attr('transform', bTransform);
 
-    var aTransform = 'translate(' + (x0 + w / 2) + ',' + y0 +
-        ')rotate(30)translate(0,' + -aaxis._offset + ')';
+    var aTransform = strTranslate(x0 + w / 2, y0) +
+        'rotate(30)' + strTranslate(0, -aaxis._offset);
     _this.layers.aaxis.attr('transform', aTransform);
     _this.layers.agrid.attr('transform', aTransform);
 
-    var cTransform = 'translate(' + (x0 + w / 2) + ',' + y0 +
-        ')rotate(-30)translate(0,' + -caxis._offset + ')';
+    var cTransform = strTranslate(x0 + w / 2, y0) +
+        'rotate(-30)' + strTranslate(0, -caxis._offset);
     _this.layers.caxis.attr('transform', cTransform);
     _this.layers.cgrid.attr('transform', cTransform);
 
@@ -423,7 +428,7 @@ proto.drawAx = function(ax) {
 
     var vals = Axes.calcTicks(ax);
     var valsClipped = Axes.clipEnds(ax, vals);
-    var transFn = Axes.makeTransFn(ax);
+    var transFn = Axes.makeTransTickFn(ax);
     var tickSign = Axes.getTickSigns(ax)[2];
 
     var caRad = Lib.deg2rad(counterAngle);
@@ -488,18 +493,26 @@ var STARTMARKER = 'm0.5,0.5h5v-2h-5v-5h-2v5h-5v2h5v5h2Z';
 // I guess this could be shared with cartesian... but for now it's separate.
 var SHOWZOOMOUTTIP = true;
 
+proto.clearSelect = function() {
+    clearSelectionsCache(this.dragOptions);
+    clearSelect(this.dragOptions.gd);
+};
+
 proto.initInteractions = function() {
     var _this = this;
     var dragger = _this.layers.plotbg.select('path').node();
     var gd = _this.graphDiv;
     var zoomLayer = gd._fullLayout._zoomlayer;
+    var scaleX;
+    var scaleY;
 
     // use plotbg for the main interactions
-    var dragOptions = {
+    this.dragOptions = {
         element: dragger,
         gd: gd,
         plotinfo: {
             id: _this.id,
+            domain: gd._fullLayout[_this.id].domain,
             xaxis: _this.xaxis,
             yaxis: _this.yaxis
         },
@@ -507,26 +520,30 @@ proto.initInteractions = function() {
         prepFn: function(e, startX, startY) {
             // these aren't available yet when initInteractions
             // is called
-            dragOptions.xaxes = [_this.xaxis];
-            dragOptions.yaxes = [_this.yaxis];
-            var dragModeNow = gd._fullLayout.dragmode;
+            _this.dragOptions.xaxes = [_this.xaxis];
+            _this.dragOptions.yaxes = [_this.yaxis];
 
-            if(dragModeNow === 'lasso') dragOptions.minDrag = 1;
-            else dragOptions.minDrag = undefined;
+            scaleX = gd._fullLayout._invScaleX;
+            scaleY = gd._fullLayout._invScaleY;
+
+            var dragModeNow = _this.dragOptions.dragmode = gd._fullLayout.dragmode;
+
+            if(freeMode(dragModeNow)) _this.dragOptions.minDrag = 1;
+            else _this.dragOptions.minDrag = undefined;
 
             if(dragModeNow === 'zoom') {
-                dragOptions.moveFn = zoomMove;
-                dragOptions.clickFn = clickZoomPan;
-                dragOptions.doneFn = zoomDone;
+                _this.dragOptions.moveFn = zoomMove;
+                _this.dragOptions.clickFn = clickZoomPan;
+                _this.dragOptions.doneFn = zoomDone;
                 zoomPrep(e, startX, startY);
             } else if(dragModeNow === 'pan') {
-                dragOptions.moveFn = plotDrag;
-                dragOptions.clickFn = clickZoomPan;
-                dragOptions.doneFn = dragDone;
+                _this.dragOptions.moveFn = plotDrag;
+                _this.dragOptions.clickFn = clickZoomPan;
+                _this.dragOptions.doneFn = dragDone;
                 panPrep();
-                clearSelect(gd);
-            } else if(dragModeNow === 'select' || dragModeNow === 'lasso') {
-                prepSelect(e, startX, startY, dragOptions, dragModeNow);
+                _this.clearSelect(gd);
+            } else if(rectMode(dragModeNow) || freeMode(dragModeNow)) {
+                prepSelect(e, startX, startY, _this.dragOptions, dragModeNow);
             }
         }
     };
@@ -552,7 +569,7 @@ proto.initInteractions = function() {
         }
 
         if(clickMode.indexOf('select') > -1 && numClicks === 1) {
-            selectOnClick(evt, gd, [_this.xaxis], [_this.yaxis], _this.id, dragOptions);
+            selectOnClick(evt, gd, [_this.xaxis], [_this.yaxis], _this.id, _this.dragOptions);
         }
 
         if(clickMode.indexOf('event') > -1) {
@@ -564,6 +581,13 @@ proto.initInteractions = function() {
         var dragBBox = dragger.getBoundingClientRect();
         x0 = startX - dragBBox.left;
         y0 = startY - dragBBox.top;
+
+        gd._fullLayout._calcInverseTransform(gd);
+        var inverse = gd._fullLayout._invTransform;
+        var transformedCoords = Lib.apply3DTransform(inverse)(x0, y0);
+        x0 = transformedCoords[0];
+        y0 = transformedCoords[1];
+
         mins0 = {
             a: _this.aaxis.range[0],
             b: _this.baxis.range[1],
@@ -577,7 +601,7 @@ proto.initInteractions = function() {
 
         zb = zoomLayer.append('path')
             .attr('class', 'zoombox')
-            .attr('transform', 'translate(' + _this.x0 + ', ' + _this.y0 + ')')
+            .attr('transform', strTranslate(_this.x0, _this.y0))
             .style({
                 'fill': lum > 0.2 ? 'rgba(0,0,0,0)' : 'rgba(255,255,255,0)',
                 'stroke-width': 0
@@ -586,7 +610,7 @@ proto.initInteractions = function() {
 
         corners = zoomLayer.append('path')
             .attr('class', 'zoombox-corners')
-            .attr('transform', 'translate(' + _this.x0 + ', ' + _this.y0 + ')')
+            .attr('transform', strTranslate(_this.x0, _this.y0))
             .style({
                 fill: Color.background,
                 stroke: Color.defaultLine,
@@ -595,7 +619,7 @@ proto.initInteractions = function() {
             })
             .attr('d', 'M0,0Z');
 
-        clearSelect(gd);
+        _this.clearSelect(gd);
     }
 
     function getAFrac(x, y) { return 1 - (y / _this.h); }
@@ -603,8 +627,8 @@ proto.initInteractions = function() {
     function getCFrac(x, y) { return ((x - (_this.h - y) / Math.sqrt(3)) / _this.w); }
 
     function zoomMove(dx0, dy0) {
-        var x1 = x0 + dx0;
-        var y1 = y0 + dy0;
+        var x1 = x0 + dx0 * scaleX;
+        var y1 = y0 + dy0 * scaleY;
         var afrac = Math.max(0, Math.min(1, getAFrac(x0, y0), getAFrac(x1, y1)));
         var bfrac = Math.max(0, Math.min(1, getBFrac(x0, y0), getBFrac(x1, y1)));
         var cfrac = Math.max(0, Math.min(1, getCFrac(x0, y0), getCFrac(x1, y1)));
@@ -678,7 +702,7 @@ proto.initInteractions = function() {
             b: mins0.b + (dxScaled + dyScaled) / 2,
             c: mins0.c - (dxScaled - dyScaled) / 2
         };
-        var minsorted = [mins.a, mins.b, mins.c].sort();
+        var minsorted = [mins.a, mins.b, mins.c].sort(Lib.sorterAsc);
         var minindices = {
             a: minsorted.indexOf(mins.a),
             b: minsorted.indexOf(mins.b),
@@ -703,11 +727,11 @@ proto.initInteractions = function() {
         }
 
         // move the data (translate, don't redraw)
-        var plotTransform = 'translate(' + (_this.x0 + dx) + ',' + (_this.y0 + dy) + ')';
+        var plotTransform = strTranslate(_this.x0 + dx, _this.y0 + dy);
         _this.plotContainer.selectAll('.scatterlayer,.maplayer')
             .attr('transform', plotTransform);
 
-        var plotTransform2 = 'translate(' + -dx + ',' + -dy + ')';
+        var plotTransform2 = strTranslate(-dx, -dy);
         _this.clipDefRelative.select('path').attr('transform', plotTransform2);
 
         // move the ticks
@@ -745,7 +769,7 @@ proto.initInteractions = function() {
         dragElement.unhover(gd, evt);
     };
 
-    dragElement.init(dragOptions);
+    dragElement.init(this.dragOptions);
 };
 
 function removeZoombox(gd) {

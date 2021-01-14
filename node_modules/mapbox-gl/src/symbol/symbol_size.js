@@ -1,16 +1,16 @@
 // @flow
 
-import { number as interpolate } from '../style-spec/util/interpolate';
+import {number as interpolate} from '../style-spec/util/interpolate';
 import Interpolate from '../style-spec/expression/definitions/interpolate';
-import { clamp } from '../util/util';
+import {clamp} from '../util/util';
 import EvaluationParameters from '../style/evaluation_parameters';
 
 import type {PropertyValue, PossiblyEvaluatedPropertyValue} from '../style/properties';
 import type {InterpolationType} from '../style-spec/expression/definitions/interpolate';
 
-const SIZE_PACK_FACTOR = 256;
+const SIZE_PACK_FACTOR = 128;
 
-export { getSizeData, evaluateSizeForFeature, evaluateSizeForZoom, SIZE_PACK_FACTOR };
+export {getSizeData, evaluateSizeForFeature, evaluateSizeForZoom, SIZE_PACK_FACTOR};
 
 export type SizeData = {
     kind: 'constant',
