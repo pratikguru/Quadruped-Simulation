@@ -4,8 +4,8 @@ import Interface from "../Interface/interface";
 import PlotArea from "../PlotArea/mainPlot";
 import ControlPanel, { Checkbox, Range, Button } from "react-control-panel";
 const Container = styled.div`
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   background-color: #37364c;
   justify-content: center;
@@ -13,27 +13,8 @@ const Container = styled.div`
   flex-direction: rows;
 `;
 
-const ControlBox = styled.div`
-  width: 80%;
-  height: 80%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(255, 255, 255, 0.3);
-`;
-
-const CustomRange = styled.input`
-  height: 20px;
-  width: 200px;
-`;
-
 const AreaContainers = styled.div`
-  width: 98%;
-  height: 98%;
   display: flex;
-
-  margin: 5px;
   border-radius: 5px;
 `;
 

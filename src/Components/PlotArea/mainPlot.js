@@ -729,7 +729,6 @@ export default class PlotArea extends Component {
   };
 
   getCOMPoint = (points, joint) => {
-
     joint[0].total_mass = 0.25 + 0.25 + 0.35;
     joint[1].total_mass = 0.25 + 0.25 + 0.35;
     joint[2].total_mass = 0.25 + 0.25 + 0.35;
