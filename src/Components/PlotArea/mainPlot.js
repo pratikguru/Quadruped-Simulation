@@ -291,6 +291,10 @@ export default class PlotArea extends Component {
       endEffectorPoints: [],
       showCogPoints: false,
       showBodyCogVectorTrace: false,
+
+      layout: {},
+      frames: [],
+      config: {},
     };
   }
 
@@ -751,6 +755,9 @@ export default class PlotArea extends Component {
     return (
       <Container>
         <Plot
+          layout={this.state.layout}
+          frames={this.state.frames}
+          config={this.state.config}
           data={[
             {
               x: this.state.bodyDimension.x,
